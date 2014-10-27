@@ -41,7 +41,7 @@ void usage(void)
 	fprintf(stderr, "\t-n : No reboot after programming\n");
 	fprintf(stderr, "\t-v : Verbose output\n");
 #if defined(USE_LIBUSB)
-	fprintf(stderr, "\n<MCU> = atmega32u4 | at90usb162 | at90usb646 | at90usb1286 | mk20dx128\n");
+	fprintf(stderr, "\n<MCU> = atmega32u4 | at90usb162 | at90usb646 | at90usb1286 | mk20dx128 | mk20dx256\n");
 #else
 	fprintf(stderr, "\n<MCU> = atmega32u4 | at90usb162 | at90usb646 | at90usb1286\n");
 #endif
@@ -991,6 +991,9 @@ void parse_options(int argc, char **argv)
 #if defined(USE_LIBUSB)
 				} else if (strcasecmp(arg+6, "mk20dx128") == 0) {
 					code_size = 131072;
+					block_size = 1024;
+				} else if (strcasecmp(arg+6, "mk20dx256") == 0) {
+					code_size = 262144;
 					block_size = 1024;
 #endif
 				} else {
