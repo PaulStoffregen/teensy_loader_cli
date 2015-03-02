@@ -38,6 +38,7 @@ void usage(void)
 	fprintf(stderr, "Usage: teensy_loader_cli -mmcu=<MCU> [-w] [-h] [-n] [-v] <file.hex>\n");
 	fprintf(stderr, "\t-w : Wait for device to appear\n");
 	fprintf(stderr, "\t-r : Use hard reboot if device not online\n");
+	fprintf(stderr, "\t-s : Use soft reboot if device not online (Teensy3.x only)\n");
 	fprintf(stderr, "\t-n : No reboot after programming\n");
 	fprintf(stderr, "\t-v : Verbose output\n");
 #if defined(USE_LIBUSB)
@@ -55,6 +56,7 @@ int teensy_open(void);
 int teensy_write(void *buf, int len, double timeout);
 void teensy_close(void);
 int hard_reboot(void);
+int soft_reboot(void);
 
 // Intel Hex File Functions
 int read_intel_hex(const char *filename);
@@ -71,6 +73,7 @@ void parse_options(int argc, char **argv);
 // options (from user via command line args)
 int wait_for_device_to_appear = 0;
 int hard_reboot_device = 0;
+int soft_reboot_device = 0;
 int reboot_after_programming = 1;
 int verbose = 0;
 int code_size = 0, block_size = 0;
@@ -115,6 +118,13 @@ int main(int argc, char **argv)
 			if (!hard_reboot()) die("Unable to find rebootor\n");
 			printf_verbose("Hard Reboot performed\n");
 			hard_reboot_device = 0; // only hard reboot once
+			wait_for_device_to_appear = 1;
+		}
+		if (soft_reboot_device) {
+			if (soft_reboot()) {
+				printf_verbose("Soft reboot performed\n");
+			}
+			soft_reboot_device = 0;
 			wait_for_device_to_appear = 1;
 		}
 		if (!wait_for_device_to_appear) die("Unable to open device\n");
@@ -300,6 +310,32 @@ int hard_reboot(void)
 	return 1;
 }
 
+int soft_reboot(void)
+{
+	usb_dev_handle *serial_handle = NULL;
+
+	serial_handle = open_usb_device(0x16C0, 0x0483);
+	if (!serial_handle) {
+		char *error = usb_strerror();
+		printf("Error opening USB device: %s\n", error);
+		return 0;
+	}
+
+	char reboot_command = 134;
+	int response = usb_control_msg(serial_handle, 0x21, 0x20, 0, 0, &reboot_command, 1, 10000);
+
+	usb_release_interface(serial_handle, 0);
+	usb_close(serial_handle);
+
+	if (response < 0) {
+		char *error = usb_strerror();
+		printf("Unable to soft reboot with USB error: %s\n", error);
+		return 0;
+	}
+
+	return 1;
+}
+
 #endif
 
 
@@ -448,6 +484,12 @@ int hard_reboot(void)
 	r = write_usb_device(rebootor, "reboot", 6, 100);
 	CloseHandle(rebootor);
 	return r;
+}
+
+int soft_reboot(void)
+{
+	printf("Soft reboot is not implemented for Win32\n");
+	return 0;
 }
 
 #endif
@@ -636,6 +678,12 @@ int hard_reboot(void)
 	return 0;
 }
 
+int soft_reboot(void)
+{
+	printf("Soft reboot is not implemented for OSX\n");
+	return 0;
+}
+
 #endif
 
 
@@ -734,6 +782,12 @@ int hard_reboot(void)
 	delay(0.1);
 	close(rebootor_fd);
 	if (r == 6) return 1;
+	return 0;
+}
+
+int soft_reboot(void)
+{
+	printf("Soft reboot is not implemented for UHID\n");
 	return 0;
 }
 
@@ -965,6 +1019,7 @@ void parse_flag(char *arg)
 		switch(arg[i]) {
 			case 'w': wait_for_device_to_appear = 1; break;
 			case 'r': hard_reboot_device = 1; break;
+			case 's': soft_reboot_device = 1; break;
 			case 'n': reboot_after_programming = 0; break;
 			case 'v': verbose = 1; break;
 			default: die("Unknown flag '%c'\n", arg[i]);
