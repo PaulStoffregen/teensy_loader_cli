@@ -810,7 +810,7 @@ parse_hex_line(char *line)
 	int addr, code, num;
         int sum, len, cksum, i;
         char *ptr;
-        
+
         num = 0;
         if (line[0] != ':') return 0;
         if (strlen(line) < 11) return 0;
@@ -958,6 +958,20 @@ void die(const char *str, ...)
 #define strcasecmp stricmp
 #endif
 
+void parse_flag(char *arg)
+{
+	int i;
+	for(i=1; arg[i]; i++) {
+		switch(arg[i]) {
+			case 'w': wait_for_device_to_appear = 1; break;
+			case 'r': hard_reboot_device = 1; break;
+			case 'n': reboot_after_programming = 0; break;
+			case 'v': verbose = 1; break;
+			default: die("Unknown flag '%c'\n", arg[i]);
+		}
+	}
+}
+
 void parse_options(int argc, char **argv)
 {
 	int i;
@@ -967,15 +981,7 @@ void parse_options(int argc, char **argv)
 		arg = argv[i];
 		//printf("arg: %s\n", arg);
 		if (*arg == '-') {
-			if (strcmp(arg, "-w") == 0) {
-				wait_for_device_to_appear = 1;
-			} else if (strcmp(arg, "-r") == 0) {
-				hard_reboot_device = 1;
-			} else if (strcmp(arg, "-n") == 0) {
-				reboot_after_programming = 0;
-			} else if (strcmp(arg, "-v") == 0) {
-				verbose = 1;
-			} else if (strncmp(arg, "-mmcu=", 6) == 0) {
+			if (strncmp(arg, "-mmcu=", 6) == 0) {
 				if (strcasecmp(arg+6, "at90usb162") == 0) {
 					code_size = 15872;
 					block_size = 128;
@@ -1000,6 +1006,7 @@ void parse_options(int argc, char **argv)
 					die("Unknown MCU type\n");
 				}
 			}
+			else parse_flag(argv[i]);
 		} else {
 			filename = argv[i];
 		}
