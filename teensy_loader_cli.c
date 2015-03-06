@@ -1084,7 +1084,12 @@ void parse_options(int argc, char **argv)
 	for (i=1; i<argc; i++) {
 		arg = argv[i];
 
-		if(arg[0] == '-') {
+		//backward compatibility with previous versions.
+		if(strncmp(arg, "-mmcu=", 6) == 0) {
+			read_mcu(strchr(arg, '=') + 1);
+		}
+
+		else if(arg[0] == '-') {
 			if(arg[1] == '-') {
 				char *name = &arg[2];
 				char *val  = strchr(name, '=');
