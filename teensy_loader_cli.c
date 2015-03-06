@@ -1022,7 +1022,9 @@ void parse_flag(char *arg)
 			case 's': soft_reboot_device = 1; break;
 			case 'n': reboot_after_programming = 0; break;
 			case 'v': verbose = 1; break;
-			default: die("Unknown flag '%c'\n", arg[i]);
+			default:
+				fprintf(stderr, "Unknown flag '%c'\n", arg[i]);
+				usage();
 		}
 	}
 }
@@ -1060,6 +1062,9 @@ void parse_options(int argc, char **argv)
 				} else {
 					die("Unknown MCU type\n");
 				}
+			}
+			else if(strcmp(arg, "-help") == 0 || strcmp(arg, "--help") == 0) {
+				usage();
 			}
 			else parse_flag(argv[i]);
 		} else {
