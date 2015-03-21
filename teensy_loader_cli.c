@@ -33,21 +33,19 @@
 #include <string.h>
 #include <unistd.h>
 
-void usage(void)
+void usage(const char *err)
 {
-	fprintf(stderr, "Usage: teensy_loader_cli -mmcu=<MCU> [-w] [-h] [-n] [-v] <file.hex>\n");
-	fprintf(stderr, "\t-w : Wait for device to appear\n");
-	fprintf(stderr, "\t-r : Use hard reboot if device not online\n");
-	fprintf(stderr, "\t-s : Use soft reboot if device not online (Teensy3.x only)\n");
-	fprintf(stderr, "\t-n : No reboot after programming\n");
-	fprintf(stderr, "\t-v : Verbose output\n");
-#if defined(USE_LIBUSB)
-	fprintf(stderr, "\n<MCU> = atmega32u4 | at90usb162 | at90usb646 | at90usb1286 | mk20dx128 | mk20dx256\n");
-#else
-	fprintf(stderr, "\n<MCU> = atmega32u4 | at90usb162 | at90usb646 | at90usb1286\n");
-#endif
-	fprintf(stderr, "\nFor more information, please visit:\n");
-	fprintf(stderr, "http://www.pjrc.com/teensy/loader_cli.html\n");
+	if(err != NULL) fprintf(stderr, "%s\n\n", err);
+	fprintf(stderr,
+		"Usage: teensy_loader_cli --mcu=<MCU> [-w] [-h] [-n] [-v] <file.hex>\n"
+		"\t-w : Wait for device to appear\n"
+		"\t-r : Use hard reboot if device not online\n"
+		"\t-s : Use soft reboot if device not online (Teensy3.x only)\n"
+		"\t-n : No reboot after programming\n"
+		"\t-v : Verbose output\n"
+		"\nUse `teensy_loader_cli --list-mcus` to list supported MCUs.\n"
+		"\nFor more information, please visit:\n"
+		"http://www.pjrc.com/teensy/loader_cli.html\n");
 	exit(1);
 }
 
@@ -95,12 +93,10 @@ int main(int argc, char **argv)
 	// parse command line arguments
 	parse_options(argc, argv);
 	if (!filename) {
-		fprintf(stderr, "Filename must be specified\n\n");
-		usage();
+		usage("Filename must be specified");
 	}
 	if (!code_size) {
-		fprintf(stderr, "MCU type must be specified\n\n");
-		usage();
+		usage("MCU type must be specified");
 	}
 	printf_verbose("Teensy Loader, Command Line, Version 2.0\n");
 
@@ -864,7 +860,7 @@ parse_hex_line(char *line)
 	int addr, code, num;
         int sum, len, cksum, i;
         char *ptr;
-        
+
         num = 0;
         if (line[0] != ':') return 0;
         if (strlen(line) < 11) return 0;
@@ -1012,53 +1008,112 @@ void die(const char *str, ...)
 #define strcasecmp stricmp
 #endif
 
+
+static const struct {
+	const char *name;
+	int code_size;
+	int block_size;
+} MCUs[] = {
+	{"at90usb162",   15872,   128},
+	{"atmega32u4",   32256,   128},
+	{"at90usb646",   64512,   256},
+	{"at90usb1286", 130048,   256},
+#if defined(USE_LIBUSB)
+	{"mk20dx128",   131072,  1024},
+	{"mk20dx256",   262144,  1024},
+#endif
+	{NULL, 0, 0},
+};
+
+
+void list_mcus()
+{
+	int i;
+	printf("Supported MCUs are:\n");
+	for(i=0; MCUs[i].name != NULL; i++)
+		printf(" - %s\n", MCUs[i].name);
+	exit(1);
+}
+
+
+void read_mcu(char *name)
+{
+	int i;
+
+	if(name == NULL) {
+		fprintf(stderr, "No MCU specified.\n");
+		list_mcus();
+	}
+
+	for(i=0; MCUs[i].name != NULL; i++) {
+		if(strcasecmp(name, MCUs[i].name) == 0) {
+			code_size  = MCUs[i].code_size;
+			block_size = MCUs[i].block_size;
+			return;
+		}
+	}
+
+	fprintf(stderr, "Unknown MCU type \"%s\"\n", name);
+	list_mcus();
+}
+
+
+void parse_flag(char *arg)
+{
+	int i;
+	for(i=1; arg[i]; i++) {
+		switch(arg[i]) {
+			case 'w': wait_for_device_to_appear = 1; break;
+			case 'r': hard_reboot_device = 1; break;
+			case 's': soft_reboot_device = 1; break;
+			case 'n': reboot_after_programming = 0; break;
+			case 'v': verbose = 1; break;
+			default:
+				fprintf(stderr, "Unknown flag '%c'\n\n", arg[i]);
+				usage(NULL);
+		}
+	}
+}
+
+
 void parse_options(int argc, char **argv)
 {
 	int i;
-	const char *arg;
+	char *arg;
 
 	for (i=1; i<argc; i++) {
 		arg = argv[i];
-		//printf("arg: %s\n", arg);
-		if (*arg == '-') {
-			if (strcmp(arg, "-w") == 0) {
-				wait_for_device_to_appear = 1;
-			} else if (strcmp(arg, "-r") == 0) {
-				hard_reboot_device = 1;
-			} else if (strcmp(arg, "-s") == 0) {
-				soft_reboot_device = 1;
-			} else if (strcmp(arg, "-n") == 0) {
-				reboot_after_programming = 0;
-			} else if (strcmp(arg, "-v") == 0) {
-				verbose = 1;
-			} else if (strncmp(arg, "-mmcu=", 6) == 0) {
-				if (strcasecmp(arg+6, "at90usb162") == 0) {
-					code_size = 15872;
-					block_size = 128;
-				} else if (strcasecmp(arg+6, "atmega32u4") == 0) {
-					code_size = 32256;
-					block_size = 128;
-				} else if (strcasecmp(arg+6, "at90usb646") == 0) {
-					code_size = 64512;
-					block_size = 256;
-				} else if (strcasecmp(arg+6, "at90usb1286") == 0) {
-					code_size = 130048;
-					block_size = 256;
-#if defined(USE_LIBUSB)
-				} else if (strcasecmp(arg+6, "mk20dx128") == 0) {
-					code_size = 131072;
-					block_size = 1024;
-				} else if (strcasecmp(arg+6, "mk20dx256") == 0) {
-					code_size = 262144;
-					block_size = 1024;
-#endif
-				} else {
-					die("Unknown MCU type\n");
+
+		//backward compatibility with previous versions.
+		if(strncmp(arg, "-mmcu=", 6) == 0) {
+			read_mcu(strchr(arg, '=') + 1);
+		}
+
+		else if(arg[0] == '-') {
+			if(arg[1] == '-') {
+				char *name = &arg[2];
+				char *val  = strchr(name, '=');
+				if(val == NULL) {
+					//value must be the next string.
+					val = argv[++i];
+				}
+				else {
+					//we found an =, so split the string at it.
+					*val = '\0';
+					 val = &val[1];
+				}
+
+				if(strcasecmp(name, "help") == 0) usage(NULL);
+				else if(strcasecmp(name, "mcu") == 0) read_mcu(val);
+				else if(strcasecmp(name, "list-mcus") == 0) list_mcus();
+				else {
+					fprintf(stderr, "Unknown option \"%s\"\n\n", arg);
+					usage(NULL);
 				}
 			}
-		} else {
-			filename = argv[i];
+			else parse_flag(arg);
 		}
+		else filename = arg;
 	}
 }
 
