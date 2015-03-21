@@ -163,7 +163,7 @@ int main(int argc, char **argv)
 			buf[1] = (addr >> 16) & 255;
 			ihex_get_data(addr, block_size, buf + 2);
 			write_size = block_size + 2;
-		} else if (block_size >= 1024) {
+		} else if (block_size == 512 || block_size == 1024) {
 			buf[0] = addr & 255;
 			buf[1] = (addr >> 8) & 255;
 			buf[2] = (addr >> 16) & 255;
@@ -1019,6 +1019,7 @@ static const struct {
 	{"at90usb646",   64512,   256},
 	{"at90usb1286", 130048,   256},
 #if defined(USE_LIBUSB)
+	{"mkl26z64",     63488,   512},
 	{"mk20dx128",   131072,  1024},
 	{"mk20dx256",   262144,  1024},
 #endif
