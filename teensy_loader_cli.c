@@ -229,7 +229,7 @@ usb_dev_handle * open_usb_device(int vid, int pid)
 			if (dev->descriptor.idProduct != pid) continue;
 			h = usb_open(dev);
 			if (!h) {
-				printf_verbose("Found device but unable to open");
+				printf_verbose("Found device but unable to open\n");
 				continue;
 			}
 			#ifdef LIBUSB_HAS_GET_DRIVER_NP
@@ -238,7 +238,7 @@ usb_dev_handle * open_usb_device(int vid, int pid)
 				r = usb_detach_kernel_driver_np(h, 0);
 				if (r < 0) {
 					usb_close(h);
-					printf_verbose("Device is in use by \"%s\" driver", buf);
+					printf_verbose("Device is in use by \"%s\" driver\n", buf);
 					continue;
 				}
 			}
@@ -249,7 +249,7 @@ usb_dev_handle * open_usb_device(int vid, int pid)
 			r = usb_claim_interface(h, 0);
 			if (r < 0) {
 				usb_close(h);
-				printf_verbose("Unable to claim interface, check USB permissions");
+				printf_verbose("Unable to claim interface, check USB permissions\n");
 				continue;
 			}
 			return h;
@@ -590,7 +590,7 @@ void init_hid_manager(void)
 		IOHIDManagerUnscheduleFromRunLoop(hid_manager,
 			CFRunLoopGetCurrent(), kCFRunLoopDefaultMode);
 		CFRelease(hid_manager);
-		printf_verbose("Error opening HID Manager");
+		printf_verbose("Error opening HID Manager\n");
 	}
 }
 
