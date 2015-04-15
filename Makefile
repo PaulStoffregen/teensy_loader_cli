@@ -1,6 +1,6 @@
-OS ?= LINUX
+#OS ?= LINUX
 #OS ?= WINDOWS
-#OS ?= MACOSX
+OS ?= MACOSX10-10
 #OS ?= BSD
 
 ifeq ($(OS), LINUX)  # also works on FreeBSD
@@ -17,9 +17,9 @@ teensy_loader_cli.exe: teensy_loader_cli.c
 	$(CC) $(CFLAGS) -s -DUSE_WIN32 -o teensy_loader_cli.exe teensy_loader_cli.c -lhid -lsetupapi
 
 
-else ifeq ($(OS), MACOSX)
+else ifeq ($(OS), MACOSX10-10)
 CC ?= gcc
-SDK ?= /Developer/SDKs/MacOSX10.5.sdk
+SDK ?= /Applications/Xcode-Beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.10.sdk
 CFLAGS ?= -O2 -Wall
 teensy_loader_cli: teensy_loader_cli.c
 	$(CC) $(CFLAGS) -DUSE_APPLE_IOKIT -isysroot $(SDK) -o teensy_loader_cli teensy_loader_cli.c -Wl,-syslibroot,$(SDK) -framework IOKit -framework CoreFoundation
