@@ -153,7 +153,7 @@ int main(int argc, char **argv)
 		}
 		if (!first_block && memory_is_blank(addr, block_size)) continue;
 		printf_verbose(".");
-		if (code_size < 0x10000) {
+		if (block_size <= 256 && code_size < 0x10000) {
 			buf[0] = addr & 255;
 			buf[1] = (addr >> 8) & 255;
 			ihex_get_data(addr, block_size, buf + 2);
