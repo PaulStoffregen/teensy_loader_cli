@@ -649,12 +649,10 @@ int teensy_write(void *buf, int len, double timeout)
 	if (!iokit_teensy_reference) return 0;
 
     double start = CFAbsoluteTimeGetCurrent();
-
     while (CFAbsoluteTimeGetCurrent() - timeout < start) {
 		ret = IOHIDDeviceSetReport(iokit_teensy_reference,
 			kIOHIDReportTypeOutput, 0, buf, len);
 		if (ret == kIOReturnSuccess) return 1;
-		//printf("teensy_write, r=%d\n", r);
 		usleep(10000);
     }
 
@@ -1026,8 +1024,8 @@ static const struct {
 	{"atmega32u4",   32256,   128},
 	{"at90usb646",   64512,   256},
 	{"at90usb1286", 130048,   256},
-	{"mkl26z64",     63488,   512},
 #if defined(USE_LIBUSB) || defined(USE_APPLE_IOKIT)
+    {"mkl26z64",     63488,   512},
 	{"mk20dx128",   131072,  1024},
 	{"mk20dx256",   262144,  1024},
 #endif
