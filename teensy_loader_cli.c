@@ -647,9 +647,17 @@ int teensy_write(void *buf, int len, double timeout)
 	// even though Apple documents it with a code example!
 	// submitted to Apple on 22-sep-2009, problem ID 7245050
 	if (!iokit_teensy_reference) return 0;
-	ret = IOHIDDeviceSetReport(iokit_teensy_reference,
-		kIOHIDReportTypeOutput, 0, buf, len);
-	if (ret == kIOReturnSuccess) return 1;
+
+    double start = CFAbsoluteTimeGetCurrent();
+
+    while (CFAbsoluteTimeGetCurrent() - timeout < start) {
+		ret = IOHIDDeviceSetReport(iokit_teensy_reference,
+			kIOHIDReportTypeOutput, 0, buf, len);
+		if (ret == kIOReturnSuccess) return 1;
+		//printf("teensy_write, r=%d\n", r);
+		usleep(10000);
+    }
+
 	return 0;
 }
 
@@ -1018,8 +1026,8 @@ static const struct {
 	{"atmega32u4",   32256,   128},
 	{"at90usb646",   64512,   256},
 	{"at90usb1286", 130048,   256},
-#if defined(USE_LIBUSB)
 	{"mkl26z64",     63488,   512},
+#if defined(USE_LIBUSB) || defined(USE_APPLE_IOKIT)
 	{"mk20dx128",   131072,  1024},
 	{"mk20dx256",   262144,  1024},
 #endif
