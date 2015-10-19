@@ -27,6 +27,7 @@
 
 
 #include <stdio.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdarg.h>
@@ -38,6 +39,7 @@ void usage(const char *err)
 	if(err != NULL) fprintf(stderr, "%s\n\n", err);
 	fprintf(stderr,
 		"Usage: teensy_loader_cli --mcu=<MCU> [-w] [-h] [-n] [-v] <file.hex>\n"
+		"\t--sn=123456 : Filter device by serial number (soft reboot only)\n"
 		"\t-w : Wait for device to appear\n"
 		"\t-r : Use hard reboot if device not online\n"
 		"\t-s : Use soft reboot if device not online (Teensy3.x only)\n"
@@ -76,6 +78,7 @@ int reboot_after_programming = 1;
 int verbose = 0;
 int code_size = 0, block_size = 0;
 const char *filename=NULL;
+char *serial_number=NULL;
 
 
 /****************************************************************/
@@ -206,25 +209,22 @@ int main(int argc, char **argv)
 // http://libusb.sourceforge.net/doc/index.html
 #include <usb.h>
 
-usb_dev_handle * open_usb_device(int vid, int pid)
+usb_dev_handle * open_usb_device(int vid, int pid, bool filter)
 {
 	struct usb_bus *bus;
 	struct usb_device *dev;
 	usb_dev_handle *h;
+	char man[256];
+	char sn[256];
 	char buf[128];
 	int r;
 
 	usb_init();
 	usb_find_busses();
 	usb_find_devices();
-	//printf_verbose("\nSearching for USB device:\n");
+	// printf_verbose("\nSearching for USB device (%d,%d):\n", vid, pid);
 	for (bus = usb_get_busses(); bus; bus = bus->next) {
 		for (dev = bus->devices; dev; dev = dev->next) {
-			//printf_verbose("bus \"%s\", device \"%s\" vid=%04X, pid=%04X\n",
-			//	bus->dirname, dev->filename,
-			//	dev->descriptor.idVendor,
-			//	dev->descriptor.idProduct
-			//);
 			if (dev->descriptor.idVendor != vid) continue;
 			if (dev->descriptor.idProduct != pid) continue;
 			h = usb_open(dev);
@@ -243,6 +243,42 @@ usb_dev_handle * open_usb_device(int vid, int pid)
 				}
 			}
 			#endif
+
+			if(filter) {
+
+				if (!dev->descriptor.iManufacturer) continue;
+				r = usb_get_string_simple(h, dev->descriptor.iManufacturer, man, sizeof(man));
+				if (r < 0) {
+					usb_close(h);
+					printf_verbose("Unable to fetch manufacturer string\n", buf);
+					continue;
+				}
+
+				if (!dev->descriptor.iSerialNumber) continue;
+				r = usb_get_string_simple(h, dev->descriptor.iSerialNumber, sn, sizeof(sn));
+				if (r < 0) {
+					usb_close(h);
+					printf_verbose("Unable to fetch serial number string\n", buf);
+					continue;
+				}
+
+				if(serial_number != NULL) {
+					if(strcasecmp(serial_number, sn) != 0) {
+						usb_close(h);
+						printf_verbose("Serial number=\"%s\" did not match expected=\"%s\"\n", sn, serial_number);
+						continue;
+					}
+				}
+				printf_verbose("Found bus \"%s\", device \"%s\" vid=%04X, pid=%04X, manufacturer=\"%s\", serial_number=\"%s\"\n",
+					bus->dirname, dev->filename,
+					dev->descriptor.idVendor,
+					dev->descriptor.idProduct,
+					man,
+					sn
+				);
+
+			}
+
 			// Mac OS-X - removing this call to usb_claim_interface() might allow
 			// this to work, even though it is a clear misuse of the libusb API.
 			// normally Apple's IOKit should be used on Mac OS-X
@@ -263,7 +299,7 @@ static usb_dev_handle *libusb_teensy_handle = NULL;
 int teensy_open(void)
 {
 	teensy_close();
-	libusb_teensy_handle = open_usb_device(0x16C0, 0x0478);
+	libusb_teensy_handle = open_usb_device(0x16C0, 0x0478, false);
 	if (libusb_teensy_handle) return 1;
 	return 0;
 }
@@ -297,7 +333,7 @@ int hard_reboot(void)
 	usb_dev_handle *rebootor;
 	int r;
 
-	rebootor = open_usb_device(0x16C0, 0x0477);
+	rebootor = open_usb_device(0x16C0, 0x0477, false);
 	if (!rebootor) return 0;
 	r = usb_control_msg(rebootor, 0x21, 9, 0x0200, 0, "reboot", 6, 100);
 	usb_release_interface(rebootor, 0);
@@ -310,7 +346,7 @@ int soft_reboot(void)
 {
 	usb_dev_handle *serial_handle = NULL;
 
-	serial_handle = open_usb_device(0x16C0, 0x0483);
+	serial_handle = open_usb_device(0x16C0, 0x0483, true);
 	if (!serial_handle) {
 		char *error = usb_strerror();
 		printf("Error opening USB device: %s\n", error);
@@ -449,7 +485,7 @@ static HANDLE win32_teensy_handle = NULL;
 int teensy_open(void)
 {
 	teensy_close();
-	win32_teensy_handle = open_usb_device(0x16C0, 0x0478);
+	win32_teensy_handle = open_usb_device(0x16C0, 0x0478, false);
 	if (win32_teensy_handle) return 1;
 	return 0;
 }
@@ -633,7 +669,7 @@ static IOHIDDeviceRef iokit_teensy_reference = NULL;
 int teensy_open(void)
 {
 	teensy_close();
-	iokit_teensy_reference = open_usb_device(0x16C0, 0x0478);
+	iokit_teensy_reference = open_usb_device(0x16C0, 0x0478, false);
 	if (iokit_teensy_reference) return 1;
 	return 0;
 }
@@ -751,7 +787,7 @@ static int uhid_teensy_fd = -1;
 int teensy_open(void)
 {
 	teensy_close();
-	uhid_teensy_fd = open_usb_device(0x16C0, 0x0478);
+	uhid_teensy_fd = open_usb_device(0x16C0, 0x0478, false);
 	if (uhid_teensy_fd < 0) return 0;
 	return 1;
 }
@@ -1112,6 +1148,7 @@ void parse_options(int argc, char **argv)
 
 				if(strcasecmp(name, "help") == 0) usage(NULL);
 				else if(strcasecmp(name, "mcu") == 0) read_mcu(val);
+				else if(strcasecmp(name, "sn") == 0) serial_number = val;
 				else if(strcasecmp(name, "list-mcus") == 0) list_mcus();
 				else {
 					fprintf(stderr, "Unknown option \"%s\"\n\n", arg);
