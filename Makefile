@@ -19,7 +19,7 @@ teensy_loader_cli.exe: teensy_loader_cli.c
 
 else ifeq ($(OS), MACOSX)
 CC ?= gcc
-SDK ?= /Developer/SDKs/MacOSX10.5.sdk
+SDK ?= $(shell xcrun --show-sdk-path)
 CFLAGS ?= -O2 -Wall
 teensy_loader_cli: teensy_loader_cli.c
 	$(CC) $(CFLAGS) -DUSE_APPLE_IOKIT -isysroot $(SDK) -o teensy_loader_cli teensy_loader_cli.c -Wl,-syslibroot,$(SDK) -framework IOKit -framework CoreFoundation
