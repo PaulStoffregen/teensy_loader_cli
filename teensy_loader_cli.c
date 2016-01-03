@@ -68,7 +68,7 @@ int printf_verbose(const char *format, ...);
 void delay(double seconds);
 void die(const char *str, ...);
 void parse_options(int argc, char **argv);
-void boot();
+void boot(unsigned char *buf, int write_size);
 
 // options (from user via command line args)
 int wait_for_device_to_appear = 0;
@@ -109,7 +109,7 @@ int main(int argc, char **argv)
 		}
 		printf_verbose("Found HalfKay Bootloader\n");
 
-		boot();
+		boot(buf, block_size+2);
 		exit(0);
 	}
 
@@ -194,7 +194,7 @@ int main(int argc, char **argv)
 
 	// reboot to the user's new code
 	if (reboot_after_programming) {
-		boot();
+		boot(buf, write_size);
 	}
 	teensy_close();
 	return 0;
@@ -1133,14 +1133,12 @@ void parse_options(int argc, char **argv)
 	}
 }
 
-void boot()
+void boot(unsigned char *buf, int write_size)
 {
-	unsigned char buf[130];
-
 	printf_verbose("Booting\n");
+	memset(buf, 0, write_size);
 	buf[0] = 0xFF;
 	buf[1] = 0xFF;
 	buf[2] = 0xFF;
-	memset(buf + 3, 0, sizeof(buf) - 3);
-	teensy_write(buf, sizeof(buf), 0.25);
+	teensy_write(buf, write_size, 0.25);
 }
