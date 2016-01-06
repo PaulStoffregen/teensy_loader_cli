@@ -37,11 +37,12 @@ void usage(const char *err)
 {
 	if(err != NULL) fprintf(stderr, "%s\n\n", err);
 	fprintf(stderr,
-		"Usage: teensy_loader_cli --mcu=<MCU> [-w] [-h] [-n] [-v] <file.hex>\n"
+		"Usage: teensy_loader_cli --mcu=<MCU> [-w] [-h] [-n] [-b] [-v] <file.hex>\n"
 		"\t-w : Wait for device to appear\n"
 		"\t-r : Use hard reboot if device not online\n"
 		"\t-s : Use soft reboot if device not online (Teensy3.x only)\n"
 		"\t-n : No reboot after programming\n"
+		"\t-b : Boot only, do not program\n"
 		"\t-v : Verbose output\n"
 		"\nUse `teensy_loader_cli --list-mcus` to list supported MCUs.\n"
 		"\nFor more information, please visit:\n"
@@ -67,6 +68,7 @@ int printf_verbose(const char *format, ...);
 void delay(double seconds);
 void die(const char *str, ...);
 void parse_options(int argc, char **argv);
+void boot(unsigned char *buf, int write_size);
 
 // options (from user via command line args)
 int wait_for_device_to_appear = 0;
@@ -74,6 +76,7 @@ int hard_reboot_device = 0;
 int soft_reboot_device = 0;
 int reboot_after_programming = 1;
 int verbose = 0;
+int boot_only = 0;
 int code_size = 0, block_size = 0;
 const char *filename=NULL;
 
@@ -92,13 +95,23 @@ int main(int argc, char **argv)
 
 	// parse command line arguments
 	parse_options(argc, argv);
-	if (!filename) {
+	if (!filename && !boot_only) {
 		usage("Filename must be specified");
 	}
 	if (!code_size) {
 		usage("MCU type must be specified");
 	}
 	printf_verbose("Teensy Loader, Command Line, Version 2.0\n");
+
+	if (boot_only) {
+		if (! teensy_open()) {
+			die("Could not find HalfKay");
+		}
+		printf_verbose("Found HalfKay Bootloader\n");
+
+		boot(buf, block_size+2);
+		exit(0);
+	}
 
 	// read the intel hex file
 	// this is done first so any error is reported before using USB
@@ -181,12 +194,7 @@ int main(int argc, char **argv)
 
 	// reboot to the user's new code
 	if (reboot_after_programming) {
-		printf_verbose("Booting\n");
-		buf[0] = 0xFF;
-		buf[1] = 0xFF;
-		buf[2] = 0xFF;
-		memset(buf + 3, 0, sizeof(buf) - 3);
-		teensy_write(buf, write_size, 0.25);
+		boot(buf, write_size);
 	}
 	teensy_close();
 	return 0;
@@ -1075,6 +1083,7 @@ void parse_flag(char *arg)
 			case 's': soft_reboot_device = 1; break;
 			case 'n': reboot_after_programming = 0; break;
 			case 'v': verbose = 1; break;
+			case 'b': boot_only = 1; break;
 			default:
 				fprintf(stderr, "Unknown flag '%c'\n\n", arg[i]);
 				usage(NULL);
@@ -1124,3 +1133,12 @@ void parse_options(int argc, char **argv)
 	}
 }
 
+void boot(unsigned char *buf, int write_size)
+{
+	printf_verbose("Booting\n");
+	memset(buf, 0, write_size);
+	buf[0] = 0xFF;
+	buf[1] = 0xFF;
+	buf[2] = 0xFF;
+	teensy_write(buf, write_size, 0.25);
+}
