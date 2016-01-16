@@ -254,12 +254,15 @@ usb_dev_handle * open_usb_device(int vid, int pid)
 			// Mac OS-X - removing this call to usb_claim_interface() might allow
 			// this to work, even though it is a clear misuse of the libusb API.
 			// normally Apple's IOKit should be used on Mac OS-X
+			#if !defined(MACOSX)
 			r = usb_claim_interface(h, 0);
 			if (r < 0) {
 				usb_close(h);
 				printf_verbose("Unable to claim interface, check USB permissions\n");
 				continue;
 			}
+			#endif
+      
 			return h;
 		}
 	}
