@@ -2,6 +2,7 @@ OS ?= LINUX
 #OS ?= WINDOWS
 #OS ?= MACOSX
 #OS ?= BSD
+USE_LIBUSB ?= YES
 
 ifeq ($(OS), LINUX)  # also works on FreeBSD
 CC ?= gcc
@@ -18,6 +19,13 @@ teensy_loader_cli.exe: teensy_loader_cli.c
 
 
 else ifeq ($(OS), MACOSX)
+ifeq ($(USE_LIBUSB), YES)
+CC ?= gcc
+CFLAGS ?= -O2 -Wall
+teensy_loader_cli: teensy_loader_cli.c
+	$(CC) $(CFLAGS) -s -DUSE_LIBUSB -DMACOSX -o teensy_loader_cli teensy_loader_cli.c -lusb -I /usr/local/include -L/usr/local/lib
+	 
+else
 CC ?= gcc
 SDK ?= $(shell xcrun --show-sdk-path)
 #SDK ?= /Developer/SDKs/MacOSX10.5.sdk  # the old way...
@@ -25,6 +33,7 @@ CFLAGS ?= -O2 -Wall
 teensy_loader_cli: teensy_loader_cli.c
 	$(CC) $(CFLAGS) -DUSE_APPLE_IOKIT -isysroot $(SDK) -o teensy_loader_cli teensy_loader_cli.c -Wl,-syslibroot,$(SDK) -framework IOKit -framework CoreFoundation
 
+endif
 
 else ifeq ($(OS), BSD)  # works on NetBSD and OpenBSD
 CC ?= gcc
