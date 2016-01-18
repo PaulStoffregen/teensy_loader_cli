@@ -2,7 +2,11 @@ OS ?= LINUX
 #OS ?= WINDOWS
 #OS ?= MACOSX
 #OS ?= BSD
-USE_LIBUSB ?= YES
+
+# uncomment this to use libusb on Macintosh, instead of Apple's HID manager via IOKit
+# this is technically not the "correct" way to support Macs, but it's been reported to
+# work.
+#USE_LIBUSB ?= YES
 
 ifeq ($(OS), LINUX)  # also works on FreeBSD
 CC ?= gcc
