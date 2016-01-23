@@ -817,7 +817,7 @@ int soft_reboot(void)
 // the maximum flash image size we can support
 // chips with larger memory may be used, but only this
 // much intel-hex data can be loaded into memory!
-#define MAX_MEMORY_SIZE 0x20000
+#define MAX_MEMORY_SIZE 0x40000
 
 static unsigned char firmware_image[MAX_MEMORY_SIZE];
 static unsigned char firmware_mask[MAX_MEMORY_SIZE];
