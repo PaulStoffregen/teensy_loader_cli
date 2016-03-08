@@ -416,7 +416,7 @@ HANDLE open_usb_device(int vid, int pid)
 int write_usb_device(HANDLE h, void *buf, int len, int timeout)
 {
 	static HANDLE event = NULL;
-	unsigned char tmpbuf[1040];
+	unsigned char tmpbuf[1089];
 	OVERLAPPED ov;
 	DWORD n, r;
 
