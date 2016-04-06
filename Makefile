@@ -1,6 +1,6 @@
-OS ?= LINUX
+#OS ?= LINUX
 #OS ?= WINDOWS
-#OS ?= MACOSX
+OS ?= MACOSX
 #OS ?= BSD
 
 # uncomment this to use libusb on Macintosh, instead of Apple's HID manager via IOKit
