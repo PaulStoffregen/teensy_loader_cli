@@ -48,7 +48,9 @@ Optional command line parameters:
 
 ##System Specific Setup
 
-Linux requires [UDEV rules](49-teensy.rules) for non-root users.
+Linux requires UDEV rules for non-root users.
+
+http://www.pjrc.com/teensy/49-teensy.rules
 
 FreeBSD requires a [device configuration file](freebsd-teensy.conf) for non-root users.
 
