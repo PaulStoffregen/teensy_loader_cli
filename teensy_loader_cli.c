@@ -37,13 +37,13 @@ void usage(const char *err)
 {
 	if(err != NULL) fprintf(stderr, "%s\n\n", err);
 	fprintf(stderr,
-		"Usage: teensy_loader_cli --mcu=<MCU> [-w] [-r] [-s] [-n] [-b] [-v] <file.hex>\n"
+		"Usage: teensy_loader_cli --mcu=<MCU> [-w] [-r] [-s] [-n] [-b] [-l] [-v] <file.hex>\n"
 		"\t-w : Wait for device to appear\n"
 		"\t-r : Use hard reboot if device not online\n"
 		"\t-s : Use soft reboot if device not online (Teensy3.x only)\n"
 		"\t-n : No reboot after programming\n"
 		"\t-b : Boot only, do not program\n"
-		"\t-l : list Teensy\n"
+		"\t-l : list Teensies\n"
 		"\t-v : Verbose output\n"
 		"\nUse `teensy_loader_cli --list-mcus` to list supported MCUs.\n"
 		"\nFor more information, please visit:\n"
@@ -113,7 +113,7 @@ int main(int argc, char **argv)
 	if (!code_size) {
 		usage("MCU type must be specified");
 	}
-	printf_verbose("Teensy Loader, Command Line, Version 2.0 (WMXZ)\n");
+	printf_verbose("Teensy Loader, Command Line, Version 2.0.1\n");
 
 	if (boot_only) {
 		if (! teensy_open()) {
