@@ -799,6 +799,11 @@ void list_teensies()
 	find_teensy_hid();
 	find_teensy_serial(name);
 }
+#else
+void list_teensies()
+{ 	printf("Error: list teensies not implemented: use wondows"); 
+}
+	
 #endif
 
 
