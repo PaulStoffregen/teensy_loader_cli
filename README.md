@@ -23,9 +23,11 @@ Required command line parameters:
 
 ```
 -mmcu=<MCU> : Specify Processor. You must specify the target processor. This syntax is the same as used by gcc, which makes integrating with your Makefile easier. Valid options are:
--mmcu=mk20dx256 :	Teensy 3.1 (linux & mac only)
--mmcu=mk20dx128 :	Teensy 3.0 (linux & mac only)
--mmcu=mkl26z64 :	Teensy-LC (linux & mac only)
+-mmcu=mk66fx1m0 :	Teensy 3.6
+-mmcu=mk64fx512 :	Teensy 3.5
+-mmcu=mk20dx256 :	Teensy 3.1/3.2
+-mmcu=mk20dx128 :	Teensy 3.0
+-mmcu=mkl26z64 :	Teensy-LC
 -mmcu=atmega32u4 :	Teensy 2.0
 -mmcu=at90usb1286 :	Teensy++ 2.0
 -mmcu=at90usb162 :	Teensy 1.0
