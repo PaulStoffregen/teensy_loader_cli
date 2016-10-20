@@ -1,5 +1,5 @@
-OS ?= LINUX
-#OS ?= WINDOWS
+#OS ?= LINUX
+OS = WINDOWS
 #OS ?= MACOSX
 #OS ?= BSD
 
@@ -16,11 +16,14 @@ teensy_loader_cli: teensy_loader_cli.c
 
 
 else ifeq ($(OS), WINDOWS)
-CC = i586-mingw32msvc-gcc
+#CC = i586-mingw32msvc-gcc
+CC ?= gcc
 CFLAGS ?= -O2 -Wall
 teensy_loader_cli.exe: teensy_loader_cli.c
 	$(CC) $(CFLAGS) -s -DUSE_WIN32 -o teensy_loader_cli.exe teensy_loader_cli.c -lhid -lsetupapi
 
+cleanw:
+	del /F teensy_loader_cli teensy_loader_cli.exe
 
 else ifeq ($(OS), MACOSX)
 ifeq ($(USE_LIBUSB), YES)
@@ -45,9 +48,7 @@ CFLAGS ?= -O2 -Wall
 teensy_loader_cli: teensy_loader_cli.c
 	$(CC) $(CFLAGS) -s -DUSE_UHID -o teensy_loader_cli teensy_loader_cli.c
 
-
 endif
-
 
 clean:
 	rm -f teensy_loader_cli teensy_loader_cli.exe
