@@ -1,7 +1,7 @@
 /* Teensy Loader, Command Line Interface
  * Program and Reboot Teensy Board with HalfKay Bootloader
  * http://www.pjrc.com/teensy/loader_cli.html
- * Copyright 2008-2010, PJRC.COM, LLC
+ * Copyright 2008-2016, PJRC.COM, LLC
  *
  * You may redistribute this program and/or modify it under the terms
  * of the GNU General Public License as published by the Free Software
@@ -101,7 +101,7 @@ int main(int argc, char **argv)
 	if (!code_size) {
 		usage("MCU type must be specified");
 	}
-	printf_verbose("Teensy Loader, Command Line, Version 2.0\n");
+	printf_verbose("Teensy Loader, Command Line, Version 2.1\n");
 
 	if (boot_only) {
 		if (! teensy_open()) {
