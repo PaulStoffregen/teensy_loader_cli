@@ -17,19 +17,21 @@ On Ubuntu, you may need to install "libusb-dev" to compile.
 
 A typical usage from the command line may look like this:
 
-`teensy_loader_cli -mmcu=atmega32u4 -w blink_fast.hex`
+`teensy_loader_cli -mmcu=mk20dx256 -w blink_slow_Teensy32.hex`
 
 Required command line parameters:
 
 ```
 -mmcu=<MCU> : Specify Processor. You must specify the target processor. This syntax is the same as used by gcc, which makes integrating with your Makefile easier. Valid options are:
--mmcu=mk20dx256 :	Teensy 3.1 (linux & mac only)
--mmcu=mk20dx128 :	Teensy 3.0 (linux & mac only)
--mmcu=mkl26z64 :	Teensy-LC (linux & mac only)
--mmcu=atmega32u4 :	Teensy 2.0
--mmcu=at90usb1286 :	Teensy++ 2.0
--mmcu=at90usb162 :	Teensy 1.0
--mmcu=at90usb646 :	Teensy++ 1.0
+-mmcu=mk66fx1m0 : 	Teensy 3.6
+-mmcu=mk64fx512 : 	Teensy 3.5
+-mmcu=mk20dx256 : 	Teensy 3.2 & 3.1
+-mmcu=mk20dx128 : 	Teensy 3.0
+-mmcu=mkl26z64 : 	Teensy LC
+-mmcu=at90usb1286 : 	Teensy++ 2.0
+-mmcu=atmega32u4 : 	Teensy 2.0
+-mmcu=at90usb646 : 	Teensy++ 1.0
+-mmcu=at90usb162 : 	Teensy 1.0
 ```
 
 Caution: HEX files compiled with USB support must be compiled for the correct chip. If you load a file built for a different chip, often it will hang while trying to initialize the on-chip USB controller (each chip has a different PLL-based clock generator). On some PCs, this can "confuse" your USB port and a cold reboot may be required to restore USB functionality. When a Teensy has been programmed with such incorrect code, the reset button must be held down BEFORE the USB cable is connected, and then released only after the USB cable is fully connected.
@@ -40,7 +42,7 @@ Optional command line parameters:
 
 `-r` : Use hard reboot if device not online. Perform a hard reset using a second Teensy running this [rebooter](rebootor) code, with pin C7 connected to the reset pin on your main Teensy. While this requires using a second board, it allows a Makefile to fully automate reprogramming your Teensy. No manual button press is required!
 
-`-s` : Use sort reboot if device not online. Perform a sort reset request by searching for any Teensy running USB Serial code built by Teensyduino. A request to reboot is transmitted to the first device found.
+`-s` : Use sort reboot (Linux only) if device not online. Perform a sort reset request by searching for any Teensy running USB Serial code built by Teensyduino. A request to reboot is transmitted to the first device found.
 
 `-n` : No reboot after programming. After programming the hex file, do not reboot. HalfKay remains running. This option may be useful if you wish to program the code but do not intend for it to run until the Teensy is installed inside a system with its I/O pins connected.
 

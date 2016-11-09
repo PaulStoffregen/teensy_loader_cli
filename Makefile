@@ -50,4 +50,4 @@ endif
 
 
 clean:
-	rm -f teensy_loader_cli teensy_loader_cli.exe
+	rm -f teensy_loader_cli teensy_loader_cli.exe*
