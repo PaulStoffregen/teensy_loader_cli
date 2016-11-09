@@ -482,7 +482,7 @@ int teensy_write(void *buf, int len, double timeout)
 {
 	int r;
 	if (!win32_teensy_handle) return 0;
-	delay(0.05); // min delay needed to avoid error 32: "A device attached to the system is not functioning"
+	delay(0.1); // min delay needed to avoid error 32: "A device attached to the system is not functioning"
 	r = write_usb_device(win32_teensy_handle, buf, len, (int)(timeout * 1000.0));
 	if (!r) print_win32_err();
 	return r;
