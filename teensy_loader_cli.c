@@ -468,10 +468,19 @@ int teensy_open(void)
 int teensy_write(void *buf, int len, double timeout)
 {
 	int r;
+	uint32_t begin, now, total;
+
 	if (!win32_teensy_handle) return 0;
-	r = write_usb_device(win32_teensy_handle, buf, len, (int)(timeout * 1000.0));
-	//if (!r) print_win32_err();
-	return r;
+	total = (uint32_t)(timeout * 1000.0);
+	begin = timeGetTime();
+	now = begin;
+	do {
+		r = write_usb_device(win32_teensy_handle, buf, len, total - (now - begin));
+		if (r > 0) return 1;
+		Sleep(10);
+		now = timeGetTime();
+	} while (now - begin < total);
+	return 0;
 }
 
 void teensy_close(void)
@@ -659,13 +668,13 @@ int teensy_write(void *buf, int len, double timeout)
 	// submitted to Apple on 22-sep-2009, problem ID 7245050
 	if (!iokit_teensy_reference) return 0;
 
-    double start = CFAbsoluteTimeGetCurrent();
-    while (CFAbsoluteTimeGetCurrent() - timeout < start) {
+	double start = CFAbsoluteTimeGetCurrent();
+	while (CFAbsoluteTimeGetCurrent() - timeout < start) {
 		ret = IOHIDDeviceSetReport(iokit_teensy_reference,
 			kIOHIDReportTypeOutput, 0, buf, len);
 		if (ret == kIOReturnSuccess) return 1;
 		usleep(10000);
-    }
+	}
 
 	return 0;
 }
@@ -1035,7 +1044,7 @@ static const struct {
 	{"atmega32u4",   32256,   128},
 	{"at90usb646",   64512,   256},
 	{"at90usb1286", 130048,   256},
-#if defined(USE_LIBUSB) || defined(USE_APPLE_IOKIT)
+#if defined(USE_LIBUSB) || defined(USE_APPLE_IOKIT) || defined(USE_WIN32)
 	{"mkl26z64",     63488,   512},
 	{"mk20dx128",   131072,  1024},
 	{"mk20dx256",   262144,  1024},
