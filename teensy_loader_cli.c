@@ -817,7 +817,7 @@ int soft_reboot(void)
 // the maximum flash image size we can support
 // chips with larger memory may be used, but only this
 // much intel-hex data can be loaded into memory!
-#define MAX_MEMORY_SIZE 0x40000
+#define MAX_MEMORY_SIZE 0x100000
 
 static unsigned char firmware_image[MAX_MEMORY_SIZE];
 static unsigned char firmware_mask[MAX_MEMORY_SIZE];
@@ -1036,11 +1036,11 @@ static const struct {
 	{"at90usb646",   64512,   256},
 	{"at90usb1286", 130048,   256},
 #if defined(USE_LIBUSB) || defined(USE_APPLE_IOKIT)
-    {"mkl26z64",     63488,   512},
+	{"mkl26z64",     63488,   512},
 	{"mk20dx128",   131072,  1024},
 	{"mk20dx256",   262144,  1024},
-	{"mk66fx1m0", 1048576, 1024},
-	{"mk64fx512", 524288, 1024},
+	{"mk66fx1m0",  1048576,  1024},
+	{"mk64fx512",   524288,  1024},
 #endif
 	{NULL, 0, 0},
 };
