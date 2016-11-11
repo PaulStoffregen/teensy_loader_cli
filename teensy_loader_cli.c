@@ -207,6 +207,14 @@ int main(int argc, char **argv)
 /*                                                              */
 /*             USB Access - libusb (Linux & FreeBSD)            */
 /*                                                              */
+/*  Uses libusb v0.1. To install:                               */
+/*  - [debian, ubuntu, mint] apt install libusb-dev             */
+/*  - [redhat, centos]       yum install libusb-devel           */
+/*  - [fedora]               dnf install libusb-devel           */
+/*  - [arch linux]           pacman -S libusb-compat            */
+/*  - [gentoo]               emerge dev-libs/libusb-compat      */
+/*                                                              */
+/*  - [freebsd]              seems to be preinstalled           */
 /****************************************************************/
 
 #if defined(USE_LIBUSB)
