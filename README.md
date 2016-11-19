@@ -17,21 +17,21 @@ On Ubuntu, you may need to install "libusb-dev" to compile.
 
 A typical usage from the command line may look like this:
 
-`teensy_loader_cli -mmcu=mk20dx256 -w blink_slow_Teensy32.hex`
+`teensy_loader_cli --mcu=mk20dx256 -w blink_slow_Teensy32.hex`
 
 Required command line parameters:
 
 ```
--mmcu=<MCU> : Specify Processor. You must specify the target processor. This syntax is the same as used by gcc, which makes integrating with your Makefile easier. Valid options are:
--mmcu=mk66fx1m0 : 	Teensy 3.6
--mmcu=mk64fx512 : 	Teensy 3.5
--mmcu=mk20dx256 : 	Teensy 3.2 & 3.1
--mmcu=mk20dx128 : 	Teensy 3.0
--mmcu=mkl26z64 : 	Teensy LC
--mmcu=at90usb1286 : 	Teensy++ 2.0
--mmcu=atmega32u4 : 	Teensy 2.0
--mmcu=at90usb646 : 	Teensy++ 1.0
--mmcu=at90usb162 : 	Teensy 1.0
+--mcu=<MCU> : Specify Processor. You must specify the target processor. This syntax is the same as used by gcc, which makes integrating with your Makefile easier. Valid options are:
+--mcu=mk66fx1m0 : 	Teensy 3.6
+--mcu=mk64fx512 : 	Teensy 3.5
+--mcu=mk20dx256 : 	Teensy 3.2 & 3.1
+--mcu=mk20dx128 : 	Teensy 3.0
+--mcu=mkl26z64 : 	Teensy LC
+--mcu=at90usb1286 : 	Teensy++ 2.0
+--mcu=atmega32u4 : 	Teensy 2.0
+--mcu=at90usb646 : 	Teensy++ 1.0
+--mcu=at90usb162 : 	Teensy 1.0
 ```
 
 Caution: HEX files compiled with USB support must be compiled for the correct chip. If you load a file built for a different chip, often it will hang while trying to initialize the on-chip USB controller (each chip has a different PLL-based clock generator). On some PCs, this can "confuse" your USB port and a cold reboot may be required to restore USB functionality. When a Teensy has been programmed with such incorrect code, the reset button must be held down BEFORE the USB cable is connected, and then released only after the USB cable is fully connected.
@@ -73,7 +73,7 @@ You can use teensy_loader_cli from your Makefile, to autoamtically program your 
         @echo
         @echo $(MSG_FLASH) $@
         $(OBJCOPY) -O $(FORMAT) -R .eeprom -R .fuse -R .lock -R .signature $< $@
-        teensy_loader_cli -mmcu=$(MCU) -w -v $@
+        teensy_loader_cli --mcu=$(MCU) -w -v $@
 ```
 
 Make requires the white space before any command to be a tab character (not 8 spaces), so please make sure you use tab.
