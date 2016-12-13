@@ -186,7 +186,7 @@ int main(int argc, char **argv)
 		} else {
 			die("Unknown code/block size\n");
 		}
-		r = teensy_write(buf, write_size, first_block ? 3.0 : 0.25);
+		r = teensy_write(buf, write_size, first_block ? 5.0 : 0.5);
 		if (!r) die("error writing to Teensy\n");
 		first_block = 0;
 	}
@@ -1162,5 +1162,5 @@ void boot(unsigned char *buf, int write_size)
 	buf[0] = 0xFF;
 	buf[1] = 0xFF;
 	buf[2] = 0xFF;
-	teensy_write(buf, write_size, 0.25);
+	teensy_write(buf, write_size, 0.5);
 }
