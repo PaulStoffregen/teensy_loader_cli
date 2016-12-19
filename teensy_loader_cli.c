@@ -1,7 +1,7 @@
 /* Teensy Loader, Command Line Interface
  * Program and Reboot Teensy Board with HalfKay Bootloader
  * http://www.pjrc.com/teensy/loader_cli.html
- * Copyright 2008-2010, PJRC.COM, LLC
+ * Copyright 2008-2016, PJRC.COM, LLC
  *
  * You may redistribute this program and/or modify it under the terms
  * of the GNU General Public License as published by the Free Software
@@ -113,7 +113,7 @@ int main(int argc, char **argv)
 	if (!code_size) {
 		usage("MCU type must be specified");
 	}
-	printf_verbose("Teensy Loader, Command Line, Version 2.0.1\n");
+	printf_verbose("Teensy Loader, Command Line, Version 2.1.z\n");
 
 	if (boot_only) {
 		if (! teensy_open()) {
@@ -198,8 +198,7 @@ int main(int argc, char **argv)
 		} else {
 			die("Unknown code/block size\n");
 		}
-//		printf("%d %d\n", addr,code_size);
-		r = teensy_write(buf, write_size, first_block ? 3.0 : 0.25);
+		r = teensy_write(buf, write_size, first_block ? 5.0 : 0.5);
 		if (!r) die("error writing to Teensy\n");
 		first_block = 0;
 	}
@@ -220,6 +219,14 @@ int main(int argc, char **argv)
 /*                                                              */
 /*             USB Access - libusb (Linux & FreeBSD)            */
 /*                                                              */
+/*  Uses libusb v0.1. To install:                               */ 
+/*  - [debian, ubuntu, mint] apt install libusb-dev             */ 
+/*  - [redhat, centos]       yum install libusb-devel           */ 
+/*  - [fedora]               dnf install libusb-devel           */ 
+/*  - [arch linux]           pacman -S libusb-compat            */ 
+/*  - [gentoo]               emerge dev-libs/libusb-compat      */ 
+/*                                                              */ 
+/*  - [freebsd]              seems to be preinstalled           */ 
 /****************************************************************/
 
 #if defined(USE_LIBUSB)
@@ -481,11 +488,18 @@ int teensy_open(void)
 int teensy_write(void *buf, int len, double timeout)
 {
 	int r;
+	uint32_t begin, now, total; 
 	if (!win32_teensy_handle) return 0;
-	delay(0.1); // min delay needed to avoid error 32: "A device attached to the system is not functioning"
-	r = write_usb_device(win32_teensy_handle, buf, len, (int)(timeout * 1000.0));
-	if (!r) print_win32_err();
-	return r;
+	total = (uint32_t)(timeout * 1000.0); 
+	begin = timeGetTime(); 
+	now = begin; 
+	do { 
+		r = write_usb_device(win32_teensy_handle, buf, len, total - (now - begin)); 
+		if (r > 0) return 1; 
+		Sleep(10); 
+		now = timeGetTime(); 
+	} while (now - begin < total); 
+	return 0; 
 }
 
 void teensy_close(void)
@@ -1121,7 +1135,7 @@ int soft_reboot(void)
 // the maximum flash image size we can support
 // chips with larger memory may be used, but only this
 // much intel-hex data can be loaded into memory!
-#define MAX_MEMORY_SIZE 1048576
+#define MAX_MEMORY_SIZE 0x100000 
 
 static unsigned char firmware_image[MAX_MEMORY_SIZE];
 static unsigned char firmware_mask[MAX_MEMORY_SIZE];
@@ -1450,5 +1464,5 @@ void boot(unsigned char *buf, int write_size)
 	buf[0] = 0xFF;
 	buf[1] = 0xFF;
 	buf[2] = 0xFF;
-	teensy_write(buf, write_size, 0.25);
+	teensy_write(buf, write_size, 0.5);
 }
