@@ -35,6 +35,9 @@ SDK ?= $(shell xcrun --show-sdk-path)
 #SDK ?= /Developer/SDKs/MacOSX10.6.sdk  # the old way...
 CFLAGS ?= -O2 -Wall
 teensy_loader_cli: teensy_loader_cli.c
+ifeq ($(SDK),)
+	$(error SDK was not found. To use this type of compilation please install Xcode)
+endif
 	$(CC) $(CFLAGS) -DUSE_APPLE_IOKIT -isysroot $(SDK) -o teensy_loader_cli teensy_loader_cli.c -Wl,-syslibroot,$(SDK) -framework IOKit -framework CoreFoundation
 
 endif
