@@ -40,7 +40,7 @@ void usage(const char *err)
 		"Usage: teensy_loader_cli --mcu=<MCU> [-w] [-r] [-s] [-n] [-b] [-l] [-v] <file.hex>\n"
 		"\t-w : Wait for device to appear\n"
 		"\t-r : Use hard reboot if device not online\n"
-		"\t-s : Use soft reboot if device not online (Teensy3.x only)\n"
+		"\t-s : Use software to put devive into programming mode (Teensy3.x only)\n"
 		"\t-n : No reboot after programming\n"
 		"\t-b : Boot only, do not program\n"
 		"\t-l : list Teensies\n"
