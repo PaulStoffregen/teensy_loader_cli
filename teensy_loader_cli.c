@@ -554,7 +554,7 @@ void verbosePrintTeensyType(int capUsage)
 			printf_verbose(" have Teensy 3.2\n");
 		else if((int)(capUsage) == 0x0022)
 			printf_verbose(" have Teensy 3.6\n");
-		else if((int)(capUsage) == 0x0023)
+		else if((int)(capUsage) == 0x001F)
 			printf_verbose(" have Teensy 3.5\n");
 }
 
