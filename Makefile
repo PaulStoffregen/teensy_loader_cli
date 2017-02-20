@@ -33,6 +33,9 @@ else
 CC ?= gcc
 SDK ?= $(shell xcrun --show-sdk-path)
 #SDK ?= /Developer/SDKs/MacOSX10.6.sdk  # the old way...
+#SDK = /Developer_xcode32/SDKs/MacOSX10.5.sdk  # the very old way!
+#CC = /Developer_xcode32/usr/bin/gcc-4.0
+#CFLAGS = -O2 -Wall -arch i386 -arch ppc
 CFLAGS ?= -O2 -Wall
 teensy_loader_cli: teensy_loader_cli.c
 ifeq ($(SDK),)
