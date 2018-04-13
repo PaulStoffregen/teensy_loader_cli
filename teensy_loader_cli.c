@@ -90,7 +90,8 @@ const char *filename=NULL;
 int main(int argc, char **argv)
 {
 	unsigned char buf[2048];
-	int num, addr, r, write_size=block_size+2;
+	int num, addr, r, write_size;
+
 	int first_block=1, waited=0;
 
 	// parse command line arguments
@@ -103,13 +104,19 @@ int main(int argc, char **argv)
 	}
 	printf_verbose("Teensy Loader, Command Line, Version 2.1\n");
 
+	if (block_size == 512 || block_size == 1024) {
+		write_size = block_size + 64;
+	} else {
+		write_size = block_size + 2;
+	};
+
 	if (boot_only) {
 		if (! teensy_open()) {
 			die("Could not find HalfKay");
 		}
 		printf_verbose("Found HalfKay Bootloader\n");
 
-		boot(buf, block_size+2);
+		boot(buf, write_size);
 		exit(0);
 	}
 
