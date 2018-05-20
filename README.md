@@ -42,7 +42,7 @@ Optional command line parameters:
 
 `-w` : Wait for device to appear. When the pushbuttons has not been pressed and HalfKay may not be running yet, this option makes teensy_loader_cli wait. It is safe to use this when HalfKay is already running. The hex file is read before waiting to verify it exists, and again immediately after the device is detected.
 
-`-r` : Use hard reboot if device not online. Perform a hard reset using a second Teensy running this [rebooter](rebootor) code, with pin C7 connected to the reset pin on your main Teensy. While this requires using a second board, it allows a Makefile to fully automate reprogramming your Teensy. No manual button press is required!
+`-r` : Use hard reboot if device not online. Perform a hard reset using a second Teensy 2.0 running this [rebooter](rebootor) code, with pin C7 connected to the reset pin on your main Teensy. While this requires using a second board, it allows a Makefile to fully automate reprogramming your Teensy. This method is recommended for fully automated usage, such as Travis CI with PlatformIO. No manual button press is required!
 
 `-s` : Use soft reboot (Linux only) if device not online. Perform a soft reset request by searching for any Teensy running USB Serial code built by Teensyduino. A request to reboot is transmitted to the first device found.
 
