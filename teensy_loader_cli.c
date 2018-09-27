@@ -110,22 +110,14 @@ int main(int argc, char **argv)
 		write_size = block_size + 2;
 	};
 
-	if (boot_only) {
-		if (! teensy_open()) {
-			die("Could not find HalfKay");
-		}
-		printf_verbose("Found HalfKay Bootloader\n");
-
-		boot(buf, write_size);
-		exit(0);
+	if (!boot_only) {
+		// read the intel hex file
+		// this is done first so any error is reported before using USB
+		num = read_intel_hex(filename);
+		if (num < 0) die("error reading intel hex file \"%s\"", filename);
+		printf_verbose("Read \"%s\": %d bytes, %.1f%% usage\n",
+			filename, num, (double)num / (double)code_size * 100.0);
 	}
-
-	// read the intel hex file
-	// this is done first so any error is reported before using USB
-	num = read_intel_hex(filename);
-	if (num < 0) die("error reading intel hex file \"%s\"", filename);
-	printf_verbose("Read \"%s\": %d bytes, %.1f%% usage\n",
-		filename, num, (double)num / (double)code_size * 100.0);
 
 	// open the USB device
 	while (1) {
@@ -143,7 +135,7 @@ int main(int argc, char **argv)
 			soft_reboot_device = 0;
 			wait_for_device_to_appear = 1;
 		}
-		if (!wait_for_device_to_appear) die("Unable to open device\n");
+		if (!wait_for_device_to_appear) die("Unable to open device (hint: try -w option)\n");
 		if (!waited) {
 			printf_verbose("Waiting for Teensy device...\n");
 			printf_verbose(" (hint: press the reset button)\n");
@@ -152,6 +144,12 @@ int main(int argc, char **argv)
 		delay(0.25);
 	}
 	printf_verbose("Found HalfKay Bootloader\n");
+	
+	if (boot_only) {
+		boot(buf, write_size);
+		teensy_close();
+		return 0;
+	}
 
 	// if we waited for the device, read the hex file again
 	// perhaps it changed while we were waiting?
