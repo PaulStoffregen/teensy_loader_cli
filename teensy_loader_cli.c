@@ -1063,6 +1063,7 @@ static const struct {
 	{"mk20dx256",   262144,  1024},
 	{"mk66fx1m0",  1048576,  1024},
 	{"mk64fx512",   524288,  1024},
+	{"imxrt1062",  2031616,  1024},
 
 	// Add duplicates that match friendly Teensy Names
 	// Match board names in boards.txt
@@ -1073,6 +1074,7 @@ static const struct {
 	{"TEENSY31",   262144,  1024},
 	{"TEENSY35",   524288,  1024},
 	{"TEENSY36",  1048576,  1024},
+	{"TEENSY40",  2031616,  1024},
 #endif
 	{NULL, 0, 0},
 };
