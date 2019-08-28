@@ -79,6 +79,7 @@ int verbose = 0;
 int boot_only = 0;
 int code_size = 0, block_size = 0;
 const char *filename=NULL;
+unsigned int extended_addr;
 
 
 /****************************************************************/
@@ -91,6 +92,7 @@ int main(int argc, char **argv)
 {
 	unsigned char buf[2048];
 	int num, addr, r, write_size;
+	unsigned int addrTemp;
 
 	int first_block=1, waited=0;
 
@@ -144,7 +146,7 @@ int main(int argc, char **argv)
 		delay(0.25);
 	}
 	printf_verbose("Found HalfKay Bootloader\n");
-	
+
 	if (boot_only) {
 		boot(buf, write_size);
 		teensy_close();
@@ -182,9 +184,10 @@ int main(int argc, char **argv)
 			ihex_get_data(addr, block_size, buf + 2);
 			write_size = block_size + 2;
 		} else if (block_size == 512 || block_size == 1024) {
-			buf[0] = addr & 255;
-			buf[1] = (addr >> 8) & 255;
-			buf[2] = (addr >> 16) & 255;
+			addrTemp = addr + extended_addr;
+			buf[0] = addrTemp & 255;
+			buf[1] = (addrTemp >> 8) & 255;
+			buf[2] = (addrTemp >> 16) & 255;
 			memset(buf + 3, 0, 61);
 			ihex_get_data(addr, block_size, buf + 64);
 			write_size = block_size + 64;
@@ -275,7 +278,7 @@ usb_dev_handle * open_usb_device(int vid, int pid)
 				continue;
 			}
 			#endif
-      
+
 			return h;
 		}
 	}
@@ -845,7 +848,7 @@ static unsigned char firmware_image[MAX_MEMORY_SIZE];
 static unsigned char firmware_mask[MAX_MEMORY_SIZE];
 static int end_record_seen=0;
 static int byte_count;
-static unsigned int extended_addr = 0;
+// static unsigned int extended_addr = 0;
 static int parse_hex_line(char *line);
 
 int read_intel_hex(const char *filename)
@@ -911,7 +914,7 @@ parse_hex_line(char *line)
         ptr += 4;
           /* printf("Line: length=%d Addr=%d\n", len, addr); */
         if (!sscanf(ptr, "%02x", &code)) return 0;
-	if (addr + extended_addr + len >= MAX_MEMORY_SIZE) return 0;
+	if (addr + len >= MAX_MEMORY_SIZE) return 0;
         ptr += 2;
         sum = (len & 255) + ((addr >> 8) & 255) + (addr & 255) + (code & 255);
 	if (code != 0) {
@@ -935,7 +938,7 @@ parse_hex_line(char *line)
         		if (!sscanf(ptr, "%02x", &cksum)) return 1;
 			if (((sum & 255) + (cksum & 255)) & 255) return 1;
 			extended_addr = i << 16;
-			//printf("ext addr = %08X\n", extended_addr);
+			// printf("ext addr = %08X\n", extended_addr);
 		}
 		return 1;	// non-data line
 	}
@@ -943,8 +946,8 @@ parse_hex_line(char *line)
         while (num != len) {
                 if (sscanf(ptr, "%02x", &i) != 1) return 0;
 		i &= 255;
-		firmware_image[addr + extended_addr + num] = i;
-		firmware_mask[addr + extended_addr + num] = 1;
+		firmware_image[addr + num] = i;
+		firmware_mask[addr + num] = 1;
                 ptr += 2;
                 sum += i;
                 (num)++;
