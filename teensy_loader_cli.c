@@ -79,7 +79,10 @@ int verbose = 0;
 int boot_only = 0;
 int code_size = 0, block_size = 0;
 const char *filename=NULL;
-unsigned int extended_addr;
+// extended_addr is the minimm one if more than one was found
+// extended_offset is used if multiple for offseting from minimum one...
+unsigned int extended_addr = 0;
+unsigned int extended_offset = 0;	
 
 
 /****************************************************************/
@@ -887,6 +890,37 @@ int read_intel_hex(const char *filename)
 	return byte_count;
 }
 
+/* update extended addr */
+int 
+update_extended_addr(unsigned int new_extended_addr)
+{
+	int i;
+	if (extended_addr) {
+		if (new_extended_addr >= extended_addr) {
+			extended_offset = new_extended_addr - extended_addr;
+		} else {
+			// Need to move previous data down in memory for new offset
+			extended_offset = extended_offset - new_extended_addr;	// ruse variable for 
+			printf("Warning: 2nd extended offset record moving data down by %d bytes\n", extended_offset);
+			for (i=MAX_MEMORY_SIZE-1; i>= 0; i--) {
+				if (firmware_mask[i]) {
+					if ((i+extended_offset) >= MAX_MEMORY_SIZE) return 0;	// Too big!
+					firmware_image[i+extended_offset] = firmware_image[i];
+					firmware_mask[i+extended_offset] = 1;
+					firmware_image[i] = 0xFF;
+					firmware_mask[i] = 0;
+				}
+			}
+			extended_addr = new_extended_addr;	// remember the new extended addr
+			extended_offset = 0;		// and we offset now by zero
+		}
+
+	} else {  
+		/* first one just remember the address */
+		extended_addr = new_extended_addr;
+	}
+	return 1;
+}
 
 /* from ihex.c, at http://www.pjrc.com/tech/8051/pm2_docs/intel-hex.html */
 
@@ -902,7 +936,6 @@ parse_hex_line(char *line)
 	int addr, code, num;
         int sum, len, cksum, i;
         char *ptr;
-
         num = 0;
         if (line[0] != ':') return 0;
         if (strlen(line) < 11) return 0;
@@ -914,7 +947,7 @@ parse_hex_line(char *line)
         ptr += 4;
           /* printf("Line: length=%d Addr=%d\n", len, addr); */
         if (!sscanf(ptr, "%02x", &code)) return 0;
-	if (addr + len >= MAX_MEMORY_SIZE) return 0;
+	if (addr + len + extended_offset >= MAX_MEMORY_SIZE) return 0;
         ptr += 2;
         sum = (len & 255) + ((addr >> 8) & 255) + (addr & 255) + (code & 255);
 	if (code != 0) {
@@ -928,7 +961,9 @@ parse_hex_line(char *line)
 			sum += ((i >> 8) & 255) + (i & 255);
         		if (!sscanf(ptr, "%02x", &cksum)) return 1;
 			if (((sum & 255) + (cksum & 255)) & 255) return 1;
-			extended_addr = i << 4;
+			if (!update_extended_addr( i << 4)) {
+				return 0; // Failed to handle the new address
+			}
 			//printf("ext addr = %05X\n", extended_addr);
 		}
 		if (code == 4 && len == 2) {
@@ -937,7 +972,11 @@ parse_hex_line(char *line)
 			sum += ((i >> 8) & 255) + (i & 255);
         		if (!sscanf(ptr, "%02x", &cksum)) return 1;
 			if (((sum & 255) + (cksum & 255)) & 255) return 1;
-			extended_addr = i << 16;
+
+			if (!update_extended_addr( i << 16)) {
+				return 0;
+			}
+
 			// printf("ext addr = %08X\n", extended_addr);
 		}
 		return 1;	// non-data line
@@ -946,8 +985,8 @@ parse_hex_line(char *line)
         while (num != len) {
                 if (sscanf(ptr, "%02x", &i) != 1) return 0;
 		i &= 255;
-		firmware_image[addr + num] = i;
-		firmware_mask[addr + num] = 1;
+		firmware_image[addr + extended_offset + num] = i;
+		firmware_mask[addr + extended_offset + num] = 1;
                 ptr += 2;
                 sum += i;
                 (num)++;
