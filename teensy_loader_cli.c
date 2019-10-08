@@ -935,6 +935,11 @@ parse_hex_line(char *line)
         		if (!sscanf(ptr, "%02x", &cksum)) return 1;
 			if (((sum & 255) + (cksum & 255)) & 255) return 1;
 			extended_addr = i << 16;
+			if (code_size > 1048576 && block_size >= 1024 &&
+			   extended_addr >= 0x60000000 && extended_addr < 0x60000000 + code_size) {
+				// Teensy 4.0 HEX files have 0x60000000 FlexSPI offset
+				extended_addr -= 0x60000000;
+			}
 			//printf("ext addr = %08X\n", extended_addr);
 		}
 		return 1;	// non-data line
@@ -1063,6 +1068,7 @@ static const struct {
 	{"mk20dx256",   262144,  1024},
 	{"mk66fx1m0",  1048576,  1024},
 	{"mk64fx512",   524288,  1024},
+	{"imxrt1062",  2031616,  1024},
 
 	// Add duplicates that match friendly Teensy Names
 	// Match board names in boards.txt
@@ -1073,6 +1079,7 @@ static const struct {
 	{"TEENSY31",   262144,  1024},
 	{"TEENSY35",   524288,  1024},
 	{"TEENSY36",  1048576,  1024},
+	{"TEENSY40",  2031616,  1024},
 #endif
 	{NULL, 0, 0},
 };
