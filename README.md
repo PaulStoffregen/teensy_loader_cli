@@ -25,6 +25,7 @@ Required command line parameters:
 
 ```
 --mcu=<MCU> : Specify Processor. You must specify the target processor. This syntax is the same as used by gcc, which makes integrating with your Makefile easier. Valid options are:
+--mcu=imxrt1062 : 	Teensy 4.0
 --mcu=mk66fx1m0 : 	Teensy 3.6
 --mcu=mk64fx512 : 	Teensy 3.5
 --mcu=mk20dx256 : 	Teensy 3.2 & 3.1
