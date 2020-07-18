@@ -370,8 +370,8 @@ int soft_reboot(void)
 // http://msdn.microsoft.com/en-us/library/ms790932.aspx
 #include <windows.h>
 #include <setupapi.h>
-#include <ddk/hidsdi.h>
-#include <ddk/hidclass.h>
+#include <hidsdi.h>
+#include <hidclass.h>
 
 HANDLE open_usb_device(int vid, int pid)
 {
