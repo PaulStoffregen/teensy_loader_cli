@@ -102,7 +102,7 @@ int main(int argc, char **argv)
 	if (!code_size) {
 		usage("MCU type must be specified");
 	}
-	printf_verbose("Teensy Loader, Command Line, Version 2.1\n");
+	printf_verbose("Teensy Loader, Command Line, Version 2.2\n");
 
 	if (block_size == 512 || block_size == 1024) {
 		write_size = block_size + 64;
@@ -1081,6 +1081,7 @@ static const struct {
 	{"TEENSY35",   524288,  1024},
 	{"TEENSY36",  1048576,  1024},
 	{"TEENSY40",  2031616,  1024},
+	{"TEENSY41",  8126464,  1024},
 #endif
 	{NULL, 0, 0},
 };
