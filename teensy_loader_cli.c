@@ -37,7 +37,7 @@ void usage(const char *err)
 {
 	if(err != NULL) fprintf(stderr, "%s\n\n", err);
 	fprintf(stderr,
-		"Usage: teensy_loader_cli --mcu=<MCU> [-w] [-h] [-n] [-b] [-v] <file.hex>\n"
+		"Usage: teensy_loader_cli --mcu=<MCU> [--vid=<VID>] [--pid=<PID>] [-w] [-h] [-n] [-b] [-v] <file.hex>\n"
 		"\t-w : Wait for device to appear\n"
 		"\t-r : Use hard reboot if device not online\n"
 		"\t-s : Use soft reboot if device not online (Teensy 3.x & 4.x)\n"
@@ -78,6 +78,8 @@ int reboot_after_programming = 1;
 int verbose = 0;
 int boot_only = 0;
 int code_size = 0, block_size = 0;
+int opt_vid = 0x16C0;
+int opt_pid = 0x0483;
 const char *filename=NULL;
 
 
@@ -334,7 +336,7 @@ int soft_reboot(void)
 {
 	usb_dev_handle *serial_handle = NULL;
 
-	serial_handle = open_usb_device(0x16C0, 0x0483);
+	serial_handle = open_usb_device(opt_vid, opt_pid);
 	if (!serial_handle) {
 		char *error = usb_strerror();
 		printf("Error opening USB device: %s\n", error);
@@ -1168,6 +1170,8 @@ void parse_options(int argc, char **argv)
 				if(strcasecmp(name, "help") == 0) usage(NULL);
 				else if(strcasecmp(name, "mcu") == 0) read_mcu(val);
 				else if(strcasecmp(name, "list-mcus") == 0) list_mcus();
+				else if(strcasecmp(name, "vid") == 0) opt_vid = strtoul(val, NULL, 16);
+				else if(strcasecmp(name, "pid") == 0) opt_pid = strtoul(val, NULL, 16);
 				else {
 					fprintf(stderr, "Unknown option \"%s\"\n\n", arg);
 					usage(NULL);
