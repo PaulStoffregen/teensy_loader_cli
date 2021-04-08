@@ -1,4 +1,4 @@
-# Teensy Loader - Command Line Version#
+# Teensy Loader - Command Line Version with options to set VID, PID, and serial number
 
 The Teensy Loader is available in a command line version for advanced users who want to automate programming, typically using a Makefile. For most uses, the graphical version in Automatic Mode is much easier. 
 
@@ -60,6 +60,12 @@ Optional command line parameters:
 `-n` : No reboot after programming. After programming the hex file, do not reboot. HalfKay remains running. This option may be useful if you wish to program the code but do not intend for it to run until the Teensy is installed inside a system with its I/O pins connected.
 
 `-v` : Verbose output. Normally teensy_loader_cli prints only error messages if any operation fails. This enables verbose output, which can help with troubleshooting, or simply show you more status information.
+
+`--vid=<VID>` : (only with libusb) Specify the Vendor ID to match for sending the soft reset.
+
+`--pid=<PID>` : (only with libusb) Specify the Product ID to match for sending the soft reset.
+
+`--serial=<SERIAL>` : (only with libusb) Specify the serial number to match for sending the soft reset.
 
 ## System Specific Setup
 
