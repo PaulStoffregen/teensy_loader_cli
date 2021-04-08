@@ -37,7 +37,7 @@ void usage(const char *err)
 {
 	if(err != NULL) fprintf(stderr, "%s\n\n", err);
 	fprintf(stderr,
-		"Usage: teensy_loader_cli --mcu=<MCU> [--vid=<VID>] [--pid=<PID>] [-w] [-h] [-n] [-b] [-v] <file.hex>\n"
+		"Usage: teensy_loader_cli --mcu=<MCU> [--vid=<VID>] [--pid=<PID>] [--serial=<SERIAL>] [-w] [-h] [-n] [-b] [-v] <file.hex>\n"
 		"\t-w : Wait for device to appear\n"
 		"\t-r : Use hard reboot if device not online\n"
 		"\t-s : Use soft reboot if device not online (Teensy 3.x & 4.x)\n"
@@ -80,6 +80,7 @@ int boot_only = 0;
 int code_size = 0, block_size = 0;
 int opt_vid = 0x16C0;
 int opt_pid = 0x0483;
+char *opt_serial = NULL;
 const char *filename=NULL;
 
 
@@ -229,13 +230,14 @@ int main(int argc, char **argv)
 // http://libusb.sourceforge.net/doc/index.html
 #include <usb.h>
 
-usb_dev_handle * open_usb_device(int vid, int pid)
+usb_dev_handle * open_usb_device(int vid, int pid, char *serial)
 {
 	struct usb_bus *bus;
 	struct usb_device *dev;
 	usb_dev_handle *h;
 	char buf[128];
 	int r;
+	char string[256];
 
 	usb_init();
 	usb_find_busses();
@@ -254,6 +256,18 @@ usb_dev_handle * open_usb_device(int vid, int pid)
 			if (!h) {
 				printf_verbose("Found device but unable to open\n");
 				continue;
+			}
+			if (serial) {
+				if (dev->descriptor.iSerialNumber) {
+					int ret = usb_get_string_simple(h, dev->descriptor.iSerialNumber, string, sizeof(string));
+					if (ret > 0) {
+						printf("Serial Number: %s\n", string);
+						if (strcmp(serial, string)) {
+							usb_close(h);
+							continue;
+						}
+					}
+				}
 			}
 			#ifdef LIBUSB_HAS_GET_DRIVER_NP
 			r = usb_get_driver_np(h, 0, buf, sizeof(buf));
@@ -289,7 +303,7 @@ static usb_dev_handle *libusb_teensy_handle = NULL;
 int teensy_open(void)
 {
 	teensy_close();
-	libusb_teensy_handle = open_usb_device(0x16C0, 0x0478);
+	libusb_teensy_handle = open_usb_device(0x16C0, 0x0478, NULL);
 	if (libusb_teensy_handle) return 1;
 	return 0;
 }
@@ -323,7 +337,7 @@ int hard_reboot(void)
 	usb_dev_handle *rebootor;
 	int r;
 
-	rebootor = open_usb_device(0x16C0, 0x0477);
+	rebootor = open_usb_device(0x16C0, 0x0477, NULL);
 	if (!rebootor) return 0;
 	r = usb_control_msg(rebootor, 0x21, 9, 0x0200, 0, "reboot", 6, 100);
 	usb_release_interface(rebootor, 0);
@@ -336,7 +350,7 @@ int soft_reboot(void)
 {
 	usb_dev_handle *serial_handle = NULL;
 
-	serial_handle = open_usb_device(opt_vid, opt_pid);
+	serial_handle = open_usb_device(opt_vid, opt_pid, opt_serial);
 	if (!serial_handle) {
 		char *error = usb_strerror();
 		printf("Error opening USB device: %s\n", error);
@@ -1172,6 +1186,7 @@ void parse_options(int argc, char **argv)
 				else if(strcasecmp(name, "list-mcus") == 0) list_mcus();
 				else if(strcasecmp(name, "vid") == 0) opt_vid = strtoul(val, NULL, 16);
 				else if(strcasecmp(name, "pid") == 0) opt_pid = strtoul(val, NULL, 16);
+				else if(strcasecmp(name, "serial") == 0) opt_serial = val;
 				else {
 					fprintf(stderr, "Unknown option \"%s\"\n\n", arg);
 					usage(NULL);
