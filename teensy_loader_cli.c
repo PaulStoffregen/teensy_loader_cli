@@ -78,8 +78,10 @@ int reboot_after_programming = 1;
 int verbose = 0;
 int boot_only = 0;
 int code_size = 0, block_size = 0;
-int opt_vid = 0x16C0;
-int opt_pid = 0x0483;
+int hard_vid = 0x16C0;
+int hard_pid = 0x0477;
+int soft_vid = 0x16C0;
+int soft_pid = 0x0483;
 char *opt_serial = NULL;
 const char *filename=NULL;
 
@@ -337,7 +339,7 @@ int hard_reboot(void)
 	usb_dev_handle *rebootor;
 	int r;
 
-	rebootor = open_usb_device(0x16C0, 0x0477, NULL);
+	rebootor = open_usb_device(hard_vid, hard_pid, NULL);
 	if (!rebootor) return 0;
 	r = usb_control_msg(rebootor, 0x21, 9, 0x0200, 0, "reboot", 6, 100);
 	usb_release_interface(rebootor, 0);
@@ -350,7 +352,7 @@ int soft_reboot(void)
 {
 	usb_dev_handle *serial_handle = NULL;
 
-	serial_handle = open_usb_device(opt_vid, opt_pid, opt_serial);
+	serial_handle = open_usb_device(soft_vid, soft_pid, opt_serial);
 	if (!serial_handle) {
 		char *error = usb_strerror();
 		printf("Error opening USB device: %s\n", error);
@@ -524,7 +526,7 @@ int hard_reboot(void)
 	HANDLE rebootor;
 	int r;
 
-	rebootor = open_usb_device(0x16C0, 0x0477);
+	rebootor = open_usb_device(hard_vid, hard_pid);
 	if (!rebootor) return 0;
 	r = write_usb_device(rebootor, "reboot", 6, 100);
 	CloseHandle(rebootor);
@@ -720,7 +722,7 @@ int hard_reboot(void)
 	IOHIDDeviceRef rebootor;
 	IOReturn ret;
 
-	rebootor = open_usb_device(0x16C0, 0x0477);
+	rebootor = open_usb_device(hard_vid, hard_pid);
 	if (!rebootor) return 0;
 	ret = IOHIDDeviceSetReport(rebootor,
 		kIOHIDReportTypeOutput, 0, (uint8_t *)("reboot"), 6);
@@ -827,7 +829,7 @@ int hard_reboot(void)
 {
 	int r, rebootor_fd;
 
-	rebootor_fd = open_usb_device(0x16C0, 0x0477);
+	rebootor_fd = open_usb_device(hard_vid, hard_pid);
 	if (rebootor_fd < 0) return 0;
 	r = write(rebootor_fd, "reboot", 6);
 	delay(0.1);
@@ -1184,8 +1186,8 @@ void parse_options(int argc, char **argv)
 				if(strcasecmp(name, "help") == 0) usage(NULL);
 				else if(strcasecmp(name, "mcu") == 0) read_mcu(val);
 				else if(strcasecmp(name, "list-mcus") == 0) list_mcus();
-				else if(strcasecmp(name, "vid") == 0) opt_vid = strtoul(val, NULL, 16);
-				else if(strcasecmp(name, "pid") == 0) opt_pid = strtoul(val, NULL, 16);
+				else if(strcasecmp(name, "vid") == 0) hard_vid = soft_vid = strtoul(val, NULL, 16);
+				else if(strcasecmp(name, "pid") == 0) hard_pid = soft_pid = strtoul(val, NULL, 16);
 				else if(strcasecmp(name, "serial") == 0) opt_serial = val;
 				else {
 					fprintf(stderr, "Unknown option \"%s\"\n\n", arg);
