@@ -1082,6 +1082,7 @@ static const struct {
 	{"TEENSY36",  1048576,  1024},
 	{"TEENSY40",  2031616,  1024},
 	{"TEENSY41",  8126464,  1024},
+	{"TEENSYMM",  8126464,  1024},
 #endif
 	{NULL, 0, 0},
 };
