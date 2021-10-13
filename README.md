@@ -65,7 +65,7 @@ Optional command line parameters:
 
 Linux requires UDEV rules for non-root users.
 
-http://www.pjrc.com/teensy/49-teensy.rules
+https://www.pjrc.com/teensy/00-teensy.rules
 
 FreeBSD requires a [device configuration file](freebsd-teensy.conf) for non-root users.
 
