@@ -839,7 +839,7 @@ int soft_reboot(void)
 // the maximum flash image size we can support
 // chips with larger memory may be used, but only this
 // much intel-hex data can be loaded into memory!
-#define MAX_MEMORY_SIZE 0x100000
+#define MAX_MEMORY_SIZE 0x1000000
 
 static unsigned char firmware_image[MAX_MEMORY_SIZE];
 static unsigned char firmware_mask[MAX_MEMORY_SIZE];
@@ -1082,6 +1082,7 @@ static const struct {
 	{"TEENSY36",  1048576,  1024},
 	{"TEENSY40",  2031616,  1024},
 	{"TEENSY41",  8126464,  1024},
+	{"TEENSY_MICROMOD", 16515072,  1024},
 #endif
 	{NULL, 0, 0},
 };
