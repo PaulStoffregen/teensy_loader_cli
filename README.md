@@ -25,26 +25,27 @@ Required command line parameters:
 
 ```
 --mcu=<MCU> : Specify Processor. You must specify the target processor. This syntax is the same as used by gcc, which makes integrating with your Makefile easier, we also now support passing in a logical name. Valid options are:
---mcu=imxrt1062 : 	Teensy 4.0
---mcu=mk66fx1m0 : 	Teensy 3.6
---mcu=mk64fx512 : 	Teensy 3.5
---mcu=mk20dx256 : 	Teensy 3.2 & 3.1
---mcu=mk20dx128 : 	Teensy 3.0
---mcu=mkl26z64 : 	Teensy LC
---mcu=at90usb1286 : Teensy++ 2.0
---mcu=atmega32u4 : 	Teensy 2.0
---mcu=at90usb646 : 	Teensy++ 1.0
---mcu=at90usb162 : 	Teensy 1.0
---mcu=TEENSY2	: Teensy 2.0
---mcu=TEENSY2PP	: Teensy++ 2.0
---mcu=TEENSYLC	: Teensy LC
---mcu=TEENSY30	: Teensy 3.0
---mcu=TEENSY31	: Teensy 3.1
---mcu=TEENSY32	: Teensy 3.2
---mcu=TEENSY35	: Teensy 3.5
---mcu=TEENSY36	: Teensy 3.6
---mcu=TEENSY40	: Teensy 4.0
---mcu=TEENSY41	: Teensy 4.1
+--mcu=TEENSY2           Teensy 2.0
+--mcu=TEENSY2PP         Teensy++ 2.0
+--mcu=TEENSYLC          Teensy LC
+--mcu=TEENSY30          Teensy 3.0
+--mcu=TEENSY31          Teensy 3.1
+--mcu=TEENSY32          Teensy 3.2
+--mcu=TEENSY35          Teensy 3.5
+--mcu=TEENSY36          Teensy 3.6
+--mcu=TEENSY40          Teensy 4.0
+--mcu=TEENSY41          Teensy 4.1
+--mcu=TEENSY_MICROMOD   MicroMod Teensy
+--mcu=imxrt1062         Teensy 4.0
+--mcu=mk66fx1m0         Teensy 3.6
+--mcu=mk64fx512         Teensy 3.5
+--mcu=mk20dx256         Teensy 3.2 & 3.1
+--mcu=mk20dx128         Teensy 3.0
+--mcu=mkl26z64          Teensy LC
+--mcu=at90usb1286       Teensy++ 2.0
+--mcu=atmega32u4        Teensy 2.0
+--mcu=at90usb646        Teensy++ 1.0
+--mcu=at90usb162        Teensy 1.0
 ```
 
 Caution: HEX files compiled with USB support must be compiled for the correct chip. If you load a file built for a different chip, often it will hang while trying to initialize the on-chip USB controller (each chip has a different PLL-based clock generator). On some PCs, this can "confuse" your USB port and a cold reboot may be required to restore USB functionality. When a Teensy has been programmed with such incorrect code, the reset button must be held down BEFORE the USB cable is connected, and then released only after the USB cable is fully connected.
