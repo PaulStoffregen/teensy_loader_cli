@@ -138,7 +138,7 @@ int main(int argc, char **argv)
 		if (!wait_for_device_to_appear) die("Unable to open device (hint: try -w option)\n");
 		if (!waited) {
 			printf_verbose("Waiting for Teensy device...\n");
-			printf_verbose(" (hint: press the reset button)\n");
+			printf_verbose(" (hint: press the program button)\n");
 			waited = 1;
 		}
 		delay(0.25);
