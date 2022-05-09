@@ -62,6 +62,14 @@ Optional command line parameters:
 
 `-v` : Verbose output. Normally teensy_loader_cli prints only error messages if any operation fails. This enables verbose output, which can help with troubleshooting, or simply show you more status information.
 
+## Building with Visual Studio for Windows
+
+Experimental Added support to build for windows using Visual Studio.
+
+I am currently using Visual Studio 2022, but belive it would work with 2019 as well.  You will probably need to install the windows WDK to build
+this.  You will also need to x86 and not x64 as I don't believe all of the HID and setup APIS are available for x64.  Or at least my few attempts
+to build using them failed in the link phase. 
+
 ## System Specific Setup
 
 Linux requires UDEV rules for non-root users.

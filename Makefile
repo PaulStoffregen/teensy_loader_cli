@@ -14,7 +14,6 @@ CFLAGS ?= -O2 -Wall
 teensy_loader_cli: teensy_loader_cli.c
 	$(CC) $(CFLAGS) $(CPPFLAGS) -s -DUSE_LIBUSB -o teensy_loader_cli teensy_loader_cli.c -lusb $(LDFLAGS)
 
-
 else ifeq ($(OS), WINDOWS)
 CC ?= i586-mingw32msvc-gcc
 CFLAGS ?= -O2 -Wall
