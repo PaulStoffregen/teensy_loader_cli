@@ -1,3 +1,6 @@
+Debug
+Release
+.vs
 teensy_loader_cli
 teensy_loader_cli.exe*
 *.swp

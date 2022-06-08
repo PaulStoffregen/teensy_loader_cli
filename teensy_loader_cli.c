@@ -16,14 +16,14 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/
  */
 
-/* Want to incorporate this code into a proprietary application??
- * Just email paul@pjrc.com to ask.  Usually it's not a problem,
- * but you do need to ask to use this code in any way other than
- * those permitted by the GNU General Public License, version 3  */
+ /* Want to incorporate this code into a proprietary application??
+  * Just email paul@pjrc.com to ask.  Usually it's not a problem,
+  * but you do need to ask to use this code in any way other than
+  * those permitted by the GNU General Public License, version 3  */
 
-/* For non-root permissions on ubuntu or similar udev-based linux
- * http://www.pjrc.com/teensy/49-teensy.rules
- */
+  /* For non-root permissions on ubuntu or similar udev-based linux
+   * http://www.pjrc.com/teensy/49-teensy.rules
+   */
 
 
 #include <stdio.h>
@@ -31,19 +31,26 @@
 #include <stdint.h>
 #include <stdarg.h>
 #include <string.h>
-#include <unistd.h>
+//#include <unistd.h>
 
-void usage(const char *err)
+#if defined(WIN32)
+#include <windows.h>
+#endif
+//#include "setup_hid.h"
+
+void usage(const char* err)
 {
-	if(err != NULL) fprintf(stderr, "%s\n\n", err);
+	if (err != NULL) fprintf(stderr, "%s\n\n", err);
 	fprintf(stderr,
-		"Usage: teensy_loader_cli --mcu=<MCU> [-w] [-h] [-n] [-b] [-v] <file.hex>\n"
+		"Usage: teensy_loader_cli --mcu=<MCU> [-w] [-h] [-n] [-b] [-v] [-f] [-d] <file.hex>\n"
 		"\t-w : Wait for device to appear\n"
 		"\t-r : Use hard reboot if device not online\n"
 		"\t-s : Use soft reboot if device not online (Teensy 3.x & 4.x)\n"
 		"\t-n : No reboot after programming\n"
 		"\t-b : Boot only, do not program\n"
 		"\t-v : Verbose output\n"
+		"\t-f : Fill memory region holes with 0s\n"
+		"\t-d : dump hex file memory ranges\n"
 		"\nUse `teensy_loader_cli --list-mcus` to list supported MCUs.\n"
 		"\nFor more information, please visit:\n"
 		"http://www.pjrc.com/teensy/loader_cli.html\n");
@@ -58,17 +65,18 @@ int hard_reboot(void);
 int soft_reboot(void);
 
 // Intel Hex File Functions
-int read_intel_hex(const char *filename);
+int read_intel_hex(const char* filename);
+void fill_the_holes();
 int ihex_bytes_within_range(int begin, int end);
-void ihex_get_data(int addr, int len, unsigned char *bytes);
+void ihex_get_data(int addr, int len, unsigned char* bytes);
 int memory_is_blank(int addr, int block_size);
 
 // Misc stuff
-int printf_verbose(const char *format, ...);
+int printf_verbose(const char* format, ...);
 void delay(double seconds);
-void die(const char *str, ...);
-void parse_options(int argc, char **argv);
-void boot(unsigned char *buf, int write_size);
+void die(const char* str, ...);
+void parse_options(int argc, char** argv);
+void boot(unsigned char* buf, int write_size);
 
 // options (from user via command line args)
 int wait_for_device_to_appear = 0;
@@ -78,7 +86,9 @@ int reboot_after_programming = 1;
 int verbose = 0;
 int boot_only = 0;
 int code_size = 0, block_size = 0;
-const char *filename=NULL;
+int fill_holes = 0;
+int dump_memory_ranges = 0;
+const char* filename = NULL;
 
 
 /****************************************************************/
@@ -87,12 +97,12 @@ const char *filename=NULL;
 /*                                                              */
 /****************************************************************/
 
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
 	unsigned char buf[2048];
 	int num, addr, r, write_size;
 
-	int first_block=1, waited=0;
+	int first_block = 1, waited = 0;
 
 	// parse command line arguments
 	parse_options(argc, argv);
@@ -102,11 +112,12 @@ int main(int argc, char **argv)
 	if (!code_size) {
 		usage("MCU type must be specified");
 	}
-	printf_verbose("Teensy Loader, Command Line, Version 2.2\n");
+	printf_verbose("Teensy Loader, Command Line, Version 2.S\n");
 
 	if (block_size == 512 || block_size == 1024) {
 		write_size = block_size + 64;
-	} else {
+	}
+	else {
 		write_size = block_size + 2;
 	};
 
@@ -114,6 +125,7 @@ int main(int argc, char **argv)
 		// read the intel hex file
 		// this is done first so any error is reported before using USB
 		num = read_intel_hex(filename);
+		if (fill_holes) fill_the_holes();
 		if (num < 0) die("error reading intel hex file \"%s\"", filename);
 		printf_verbose("Read \"%s\": %d bytes, %.1f%% usage\n",
 			filename, num, (double)num / (double)code_size * 100.0);
@@ -157,7 +169,7 @@ int main(int argc, char **argv)
 		num = read_intel_hex(filename);
 		if (num < 0) die("error reading intel hex file \"%s\"", filename);
 		printf_verbose("Read \"%s\": %d bytes, %.1f%% usage\n",
-		 	filename, num, (double)num / (double)code_size * 100.0);
+			filename, num, (double)num / (double)code_size * 100.0);
 	}
 
 	// program the data
@@ -176,19 +188,22 @@ int main(int argc, char **argv)
 			buf[1] = (addr >> 8) & 255;
 			ihex_get_data(addr, block_size, buf + 2);
 			write_size = block_size + 2;
-		} else if (block_size == 256) {
+		}
+		else if (block_size == 256) {
 			buf[0] = (addr >> 8) & 255;
 			buf[1] = (addr >> 16) & 255;
 			ihex_get_data(addr, block_size, buf + 2);
 			write_size = block_size + 2;
-		} else if (block_size == 512 || block_size == 1024) {
+		}
+		else if (block_size == 512 || block_size == 1024) {
 			buf[0] = addr & 255;
 			buf[1] = (addr >> 8) & 255;
 			buf[2] = (addr >> 16) & 255;
 			memset(buf + 3, 0, 61);
 			ihex_get_data(addr, block_size, buf + 64);
 			write_size = block_size + 64;
-		} else {
+		}
+		else {
 			die("Unknown code/block size\n");
 		}
 		r = teensy_write(buf, write_size, first_block ? 5.0 : 0.5);
@@ -521,6 +536,177 @@ int soft_reboot(void)
 	return 0;
 }
 
+#elif defined(WIN32)
+// Visual studio build
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <windows.h>
+#include <setupapi.h>
+#include <hidsdi.h>
+#include <timeapi.h>
+static HANDLE rx_event = NULL;
+static HANDLE tx_event = NULL;
+static CRITICAL_SECTION rx_mutex;
+static CRITICAL_SECTION tx_mutex;
+
+HANDLE open_usb_device(int vid, int pid)
+{
+	GUID guid;
+	HDEVINFO info;
+	DWORD index, required_size;
+	SP_DEVICE_INTERFACE_DATA iface;
+	SP_DEVICE_INTERFACE_DETAIL_DATA* details;
+	HIDD_ATTRIBUTES attrib;
+	HANDLE h;
+	BOOL ret;
+
+	if (!rx_event) {
+		rx_event = CreateEvent(NULL, TRUE, TRUE, NULL);
+		tx_event = CreateEvent(NULL, TRUE, TRUE, NULL);
+		InitializeCriticalSection(&rx_mutex);
+		InitializeCriticalSection(&tx_mutex);
+	}
+
+	HidD_GetHidGuid(&guid);
+	info = SetupDiGetClassDevs(&guid, NULL, NULL, DIGCF_PRESENT | DIGCF_DEVICEINTERFACE);
+	if (info == INVALID_HANDLE_VALUE) return NULL;
+	for (index = 0; 1; index++) {
+		iface.cbSize = sizeof(SP_DEVICE_INTERFACE_DATA);
+		ret = SetupDiEnumDeviceInterfaces(info, NULL, &guid, index, &iface);
+		if (!ret) {
+			SetupDiDestroyDeviceInfoList(info);
+			break;
+		}
+		SetupDiGetInterfaceDeviceDetail(info, &iface, NULL, 0, &required_size, NULL);
+		details = (SP_DEVICE_INTERFACE_DETAIL_DATA*)malloc(required_size);
+		if (details == NULL) continue;
+		memset(details, 0, required_size);
+		details->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA);
+		ret = SetupDiGetDeviceInterfaceDetail(info, &iface, details,
+			required_size, NULL, NULL);
+		if (!ret) {
+			free(details);
+			continue;
+		}
+		h = CreateFile(details->DevicePath, GENERIC_READ | GENERIC_WRITE,
+			FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING,
+			FILE_FLAG_OVERLAPPED, NULL);
+		free(details);
+		if (h == INVALID_HANDLE_VALUE) continue;
+		attrib.Size = sizeof(HIDD_ATTRIBUTES);
+		ret = HidD_GetAttributes(h, &attrib);
+		if (!ret) {
+			CloseHandle(h);
+			continue;
+		}
+		if (attrib.VendorID != vid || attrib.ProductID != pid) {
+			CloseHandle(h);
+			continue;
+		}
+		SetupDiDestroyDeviceInfoList(info);
+		return h;
+	}
+	return NULL;
+}
+
+int write_usb_device(HANDLE h, void* buf, int len, int timeout)
+{
+	static HANDLE event = NULL;
+	unsigned char tmpbuf[1089];
+	OVERLAPPED ov;
+	DWORD n, r;
+
+	if (len > sizeof(tmpbuf) - 1) return 0;
+	if (event == NULL) {
+		event = CreateEvent(NULL, TRUE, TRUE, NULL);
+		if (!event) return 0;
+	}
+	ResetEvent(&event);
+	memset(&ov, 0, sizeof(ov));
+	ov.hEvent = event;
+	tmpbuf[0] = 0;
+	memcpy(tmpbuf + 1, buf, len);
+	if (!WriteFile(h, tmpbuf, len + 1, NULL, &ov)) {
+		if (GetLastError() != ERROR_IO_PENDING) return 0;
+		r = WaitForSingleObject(event, timeout);
+		if (r == WAIT_TIMEOUT) {
+			CancelIo(h);
+			return 0;
+		}
+		if (r != WAIT_OBJECT_0) return 0;
+	}
+	if (!GetOverlappedResult(h, &ov, &n, FALSE)) return 0;
+	if (n <= 0) return 0;
+	return 1;
+}
+
+void print_win32_err(void)
+{
+	char buf[256];
+	DWORD err;
+
+	err = GetLastError();
+	FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, NULL, err,
+		0, buf, sizeof(buf), NULL);
+	printf("err %ld: %s\n", err, buf);
+}
+
+static HANDLE win32_teensy_handle = NULL;
+
+int teensy_open(void)
+{
+	teensy_close();
+	win32_teensy_handle = open_usb_device(0x16C0, 0x0478);
+	if (win32_teensy_handle) return 1;
+	return 0;
+}
+
+int teensy_write(void* buf, int len, double timeout)
+{
+	int r;
+	uint32_t begin, now, total;
+
+	if (!win32_teensy_handle) return 0;
+	total = (uint32_t)(timeout * 1000.0);
+	begin = timeGetTime();
+	now = begin;
+	do {
+		r = write_usb_device(win32_teensy_handle, buf, len, total - (now - begin));
+		if (r > 0) return 1;
+		Sleep(10);
+		now = timeGetTime();
+	} while (now - begin < total);
+	return 0;
+
+}
+
+void teensy_close(void)
+{
+	if (!win32_teensy_handle) return;
+	CloseHandle(win32_teensy_handle);
+	win32_teensy_handle = NULL;
+}
+
+int hard_reboot(void)
+{
+	HANDLE rebootor;
+	int r;
+
+	rebootor = open_usb_device(0x16C0, 0x0477);
+	if (!rebootor) return 0;
+	r = write_usb_device(rebootor, (void*)"reboot", 6, 100);
+	CloseHandle(rebootor);
+	return r;
+}
+
+int soft_reboot(void)
+{
+	printf("Soft reboot is not implemented for Win32\n");
+	return 0;
+}
+
+
 #endif
 
 
@@ -843,27 +1029,38 @@ int soft_reboot(void)
 
 static unsigned char firmware_image[MAX_MEMORY_SIZE];
 static unsigned char firmware_mask[MAX_MEMORY_SIZE];
-static int end_record_seen=0;
+static int end_record_seen = 0;
 static int byte_count;
 static unsigned int extended_addr = 0;
-static int parse_hex_line(char *line);
+static unsigned int actual_extended_addr = 0;
+static unsigned int start_addr = 0;
+static unsigned int end_addr = 0;
+static int parse_hex_line(char* line);
 
-int read_intel_hex(const char *filename)
+static unsigned int min_address = MAX_MEMORY_SIZE;
+static unsigned int max_address = 0;
+
+int read_intel_hex(const char* filename)
 {
-	FILE *fp;
-	int i, lineno=0;
+	FILE* fp;
+	int i, lineno = 0;
 	char buf[1024];
 
 	byte_count = 0;
 	end_record_seen = 0;
-	for (i=0; i<MAX_MEMORY_SIZE; i++) {
+	for (i = 0; i < MAX_MEMORY_SIZE; i++) {
 		firmware_image[i] = 0xFF;
 		firmware_mask[i] = 0;
 	}
 	extended_addr = 0;
 
+#if defined(WIN32)
+	errno_t status = fopen_s(&fp, filename, "r");
+	if (status != 0) {
+#else
 	fp = fopen(filename, "r");
 	if (fp == NULL) {
+#endif
 		//printf("Unable to read file %s\n", filename);
 		return -1;
 	}
@@ -891,52 +1088,80 @@ int read_intel_hex(const char *filename)
 /* and the beginning address in addr, and returns a 1 if the */
 /* line was valid, or a 0 if an error occured.  The variable */
 /* num gets the number of bytes that were stored into bytes[] */
-
+#if defined(WIN32)
+#define SSCANF sscanf_s
+#else
+#define SSCANF sscanf
+#endif
 
 int
-parse_hex_line(char *line)
+parse_hex_line(char* line)
 {
 	int addr, code, num;
 	int sum, len, cksum, i;
-	char *ptr;
+	char* ptr;
 
 	num = 0;
 	if (line[0] != ':') return 0;
 	if (strlen(line) < 11) return 0;
-	ptr = line+1;
-	if (!sscanf(ptr, "%02x", &len)) return 0;
+	ptr = line + 1;
+	if (!SSCANF(ptr, "%02x", &len)) return 0;
 	ptr += 2;
-	if ((int)strlen(line) < (11 + (len * 2)) ) return 0;
-	if (!sscanf(ptr, "%04x", &addr)) return 0;
+	if ((int)strlen(line) < (11 + (len * 2))) return 0;
+	if (!SSCANF(ptr, "%04x", &addr)) return 0;
 	ptr += 4;
-	  /* printf("Line: length=%d Addr=%d\n", len, addr); */
-	if (!sscanf(ptr, "%02x", &code)) return 0;
+	/* printf("Line: length=%d Addr=%d\n", len, addr); */
+	if (!SSCANF(ptr, "%02x", &code)) return 0;
 	if (addr + extended_addr + len >= MAX_MEMORY_SIZE) return 0;
 	ptr += 2;
 	sum = (len & 255) + ((addr >> 8) & 255) + (addr & 255) + (code & 255);
 	if (code != 0) {
 		if (code == 1) {
+			if (dump_memory_ranges && (start_addr != end_addr)) {
+				printf("%8x - %8x\n$$\n", actual_extended_addr + start_addr, actual_extended_addr + end_addr);
+			}
+			if (verbose && actual_extended_addr >= (0x60000000u)) {
+				printf("\nFlashconfig\n");
+				uint32_t* flash_config = (uint32_t*)(&firmware_image[0]);
+				for (unsigned int i = 0; i < 128; i += 4) {
+					printf("\t%04x:%08x %08x %08x %08x\n", i * 4, flash_config[i], flash_config[i + 1], 
+										flash_config[i + 2], flash_config[i + 3]);
+				}
+
+				uint32_t* ivt = (uint32_t*)(&firmware_image[0x1000]);
+				printf("\nInterrupt Vector\n");
+				for (unsigned int i = 0; i < 8; i += 4) {
+					printf("\t%04x:%08x %08x %08x %08x\n", i * 4, ivt[i], ivt[i + 1],
+						ivt[i + 2], ivt[i + 3]);
+				}
+
+				uint32_t* boot_data = (uint32_t*)(&firmware_image[0x1020]);
+				printf("\nBoot data: %08x %08x(%u) %08x\n", boot_data[0], boot_data[1], boot_data[1], boot_data[2]);
+			}
 			end_record_seen = 1;
 			return 1;
 		}
 		if (code == 2 && len == 2) {
-			if (!sscanf(ptr, "%04x", &i)) return 1;
+			if (!SSCANF(ptr, "%04x", &i)) return 1;
 			ptr += 4;
 			sum += ((i >> 8) & 255) + (i & 255);
-			if (!sscanf(ptr, "%02x", &cksum)) return 1;
+			if (!SSCANF(ptr, "%02x", &cksum)) return 1;
 			if (((sum & 255) + (cksum & 255)) & 255) return 1;
-			extended_addr = i << 4;
+			actual_extended_addr = extended_addr = i << 4;
 			//printf("ext addr = %05X\n", extended_addr);
 		}
 		if (code == 4 && len == 2) {
-			if (!sscanf(ptr, "%04x", &i)) return 1;
+			if (!SSCANF(ptr, "%04x", &i)) return 1;
 			ptr += 4;
 			sum += ((i >> 8) & 255) + (i & 255);
-			if (!sscanf(ptr, "%02x", &cksum)) return 1;
+			if (!SSCANF(ptr, "%02x", &cksum)) return 1;
 			if (((sum & 255) + (cksum & 255)) & 255) return 1;
-			extended_addr = i << 16;
+			if (dump_memory_ranges && (start_addr != end_addr)) printf("%8x - %8x\n", actual_extended_addr + start_addr, actual_extended_addr + end_addr);
+			actual_extended_addr = extended_addr = i << 16;
+			start_addr = 0;
+			end_addr = 0;
 			if (code_size > 1048576 && block_size >= 1024 &&
-			   extended_addr >= 0x60000000 && extended_addr < 0x60000000 + code_size) {
+				extended_addr >= 0x60000000u && extended_addr < 0x60000000u + code_size) {
 				// Teensy 4.0 HEX files have 0x60000000 FlexSPI offset
 				extended_addr -= 0x60000000;
 			}
@@ -945,8 +1170,13 @@ parse_hex_line(char *line)
 		return 1;	// non-data line
 	}
 	byte_count += len;
+	if (addr != (end_addr)) {
+		if (dump_memory_ranges && (start_addr != end_addr)) printf("%8x - %8x\n", actual_extended_addr + start_addr, actual_extended_addr + end_addr);
+		start_addr = addr;
+	}
+	end_addr = addr + len;
 	while (num != len) {
-		if (sscanf(ptr, "%02x", &i) != 1) return 0;
+		if (SSCANF(ptr, "%02x", &i) != 1) return 0;
 		i &= 255;
 		firmware_image[addr + extended_addr + num] = i;
 		firmware_mask[addr + extended_addr + num] = 1;
@@ -955,9 +1185,25 @@ parse_hex_line(char *line)
 		(num)++;
 		if (num >= 256) return 0;
 	}
-	if (!sscanf(ptr, "%02x", &cksum)) return 0;
+	// keep track of minimum address and max address
+	if ((addr + extended_addr) < min_address) min_address = addr + extended_addr;
+	if ((addr + extended_addr + len) > max_address) max_address = addr + extended_addr + len;
+
+	if (!SSCANF(ptr, "%02x", &cksum)) return 0;
 	if (((sum & 255) + (cksum & 255)) & 255) return 0; /* checksum error */
 	return 1;
+}
+
+void fill_the_holes()
+{
+	unsigned int addr;
+	for (addr = min_address; addr < max_address; addr++) {
+		if (firmware_mask[addr] == 0) {
+			firmware_mask[addr] = 1;
+			firmware_image[addr] = 0;
+		}
+
+	}
 }
 
 int ihex_bytes_within_range(int begin, int end)
@@ -965,29 +1211,30 @@ int ihex_bytes_within_range(int begin, int end)
 	int i;
 
 	if (begin < 0 || begin >= MAX_MEMORY_SIZE ||
-	   end < 0 || end >= MAX_MEMORY_SIZE) {
+		end < 0 || end >= MAX_MEMORY_SIZE) {
 		return 0;
 	}
-	for (i=begin; i<=end; i++) {
+	for (i = begin; i <= end; i++) {
 		if (firmware_mask[i]) return 1;
 	}
 	return 0;
 }
 
-void ihex_get_data(int addr, int len, unsigned char *bytes)
+void ihex_get_data(int addr, int len, unsigned char* bytes)
 {
 	int i;
 
 	if (addr < 0 || len < 0 || addr + len >= MAX_MEMORY_SIZE) {
-		for (i=0; i<len; i++) {
+		for (i = 0; i < len; i++) {
 			bytes[i] = 255;
 		}
 		return;
 	}
-	for (i=0; i<len; i++) {
+	for (i = 0; i < len; i++) {
 		if (firmware_mask[addr]) {
 			bytes[i] = firmware_image[addr];
-		} else {
+		}
+		else {
 			bytes[i] = 255;
 		}
 		addr++;
@@ -1015,7 +1262,7 @@ int memory_is_blank(int addr, int block_size)
 /*                                                              */
 /****************************************************************/
 
-int printf_verbose(const char *format, ...)
+int printf_verbose(const char* format, ...)
 {
 	va_list ap;
 	int r;
@@ -1031,14 +1278,14 @@ int printf_verbose(const char *format, ...)
 
 void delay(double seconds)
 {
-	#ifdef WIN32
-	Sleep(seconds * 1000.0);
-	#else
+#ifdef WIN32
+	Sleep((DWORD)(seconds * 1000.0));
+#else
 	usleep(seconds * 1000000.0);
-	#endif
+#endif
 }
 
-void die(const char *str, ...)
+void die(const char* str, ...)
 {
 	va_list  ap;
 
@@ -1049,12 +1296,12 @@ void die(const char *str, ...)
 }
 
 #if defined(WIN32)
-#define strcasecmp stricmp
+#define strcasecmp _stricmp
 #endif
 
 
 static const struct {
-	const char *name;
+	const char* name;
 	int code_size;
 	int block_size;
 } MCUs[] = {
@@ -1062,7 +1309,6 @@ static const struct {
 	{"atmega32u4",   32256,   128},
 	{"at90usb646",   64512,   256},
 	{"at90usb1286", 130048,   256},
-#if defined(USE_LIBUSB) || defined(USE_APPLE_IOKIT) || defined(USE_WIN32)
 	{"mkl26z64",     63488,   512},
 	{"mk20dx128",   131072,  1024},
 	{"mk20dx256",   262144,  1024},
@@ -1083,7 +1329,6 @@ static const struct {
 	{"TEENSY40",  2031616,  1024},
 	{"TEENSY41",  8126464,  1024},
 	{"TEENSY_MICROMOD", 16515072,  1024},
-#endif
 	{NULL, 0, 0},
 };
 
@@ -1092,24 +1337,24 @@ void list_mcus()
 {
 	int i;
 	printf("Supported MCUs are:\n");
-	for(i=0; MCUs[i].name != NULL; i++)
+	for (i = 0; MCUs[i].name != NULL; i++)
 		printf(" - %s\n", MCUs[i].name);
 	exit(1);
 }
 
 
-void read_mcu(char *name)
+void read_mcu(char* name)
 {
 	int i;
 
-	if(name == NULL) {
+	if (name == NULL) {
 		fprintf(stderr, "No MCU specified.\n");
 		list_mcus();
 	}
 
-	for(i=0; MCUs[i].name != NULL; i++) {
-		if(strcasecmp(name, MCUs[i].name) == 0) {
-			code_size  = MCUs[i].code_size;
+	for (i = 0; MCUs[i].name != NULL; i++) {
+		if (strcasecmp(name, MCUs[i].name) == 0) {
+			code_size = MCUs[i].code_size;
 			block_size = MCUs[i].block_size;
 			return;
 		}
@@ -1120,55 +1365,57 @@ void read_mcu(char *name)
 }
 
 
-void parse_flag(char *arg)
+void parse_flag(char* arg)
 {
 	int i;
-	for(i=1; arg[i]; i++) {
-		switch(arg[i]) {
-			case 'w': wait_for_device_to_appear = 1; break;
-			case 'r': hard_reboot_device = 1; break;
-			case 's': soft_reboot_device = 1; break;
-			case 'n': reboot_after_programming = 0; break;
-			case 'v': verbose = 1; break;
-			case 'b': boot_only = 1; break;
-			default:
-				fprintf(stderr, "Unknown flag '%c'\n\n", arg[i]);
-				usage(NULL);
+	for (i = 1; arg[i]; i++) {
+		switch (arg[i]) {
+		case 'w': wait_for_device_to_appear = 1; break;
+		case 'r': hard_reboot_device = 1; break;
+		case 's': soft_reboot_device = 1; break;
+		case 'n': reboot_after_programming = 0; break;
+		case 'v': verbose = 1; break;
+		case 'b': boot_only = 1; break;
+		case 'f': fill_holes = 1; break;
+		case 'd': dump_memory_ranges = 1; break;
+		default:
+			fprintf(stderr, "Unknown flag '%c'\n\n", arg[i]);
+			usage(NULL);
 		}
 	}
 }
 
 
-void parse_options(int argc, char **argv)
+void parse_options(int argc, char** argv)
 {
 	int i;
-	char *arg;
+	char* arg;
 
-	for (i=1; i<argc; i++) {
+	for (i = 1; i < argc; i++) {
 		arg = argv[i];
 
 		//backward compatibility with previous versions.
-		if(strncmp(arg, "-mmcu=", 6) == 0) {
+		if (strncmp(arg, "-mmcu=", 6) == 0) {
 			read_mcu(strchr(arg, '=') + 1);
 		}
 
-		else if(arg[0] == '-') {
-			if(arg[1] == '-') {
-				char *name = &arg[2];
-				char *val  = strchr(name, '=');
-				if(val == NULL) {
+		else if (arg[0] == '-') {
+			if (arg[1] == '-') {
+				char* name = &arg[2];
+				char* val = strchr(name, '=');
+				if (val == NULL) {
 					//value must be the next string.
 					val = argv[++i];
 				}
 				else {
 					//we found an =, so split the string at it.
 					*val = '\0';
-					 val = &val[1];
+					val = &val[1];
 				}
 
-				if(strcasecmp(name, "help") == 0) usage(NULL);
-				else if(strcasecmp(name, "mcu") == 0) read_mcu(val);
-				else if(strcasecmp(name, "list-mcus") == 0) list_mcus();
+				if (strcasecmp(name, "help") == 0) usage(NULL);
+				else if (strcasecmp(name, "mcu") == 0) read_mcu(val);
+				else if (strcasecmp(name, "list-mcus") == 0) list_mcus();
 				else {
 					fprintf(stderr, "Unknown option \"%s\"\n\n", arg);
 					usage(NULL);
@@ -1180,7 +1427,7 @@ void parse_options(int argc, char **argv)
 	}
 }
 
-void boot(unsigned char *buf, int write_size)
+void boot(unsigned char* buf, int write_size)
 {
 	printf_verbose("Booting\n");
 	memset(buf, 0, write_size);
