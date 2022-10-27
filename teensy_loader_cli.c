@@ -45,6 +45,7 @@ void usage(const char *err)
 		"\t-b : Boot only, do not program\n"
 		"\t-v : Verbose output\n"
 		"\nUse `teensy_loader_cli --list-mcus` to list supported MCUs.\n"
+		"\nUse `teensy_loader_cli --mcu=<MCU> --code-size` to list available program size for <MCU>.\n"
 		"\nFor more information, please visit:\n"
 		"http://www.pjrc.com/teensy/loader_cli.html\n");
 	exit(1);
@@ -76,6 +77,7 @@ int hard_reboot_device = 0;
 int soft_reboot_device = 0;
 int reboot_after_programming = 1;
 int verbose = 0;
+int print_code_size = 0;
 int boot_only = 0;
 int code_size = 0, block_size = 0;
 const char *filename=NULL;
@@ -96,12 +98,16 @@ int main(int argc, char **argv)
 
 	// parse command line arguments
 	parse_options(argc, argv);
-	if (!filename && !boot_only) {
+	if (!filename && !boot_only && !print_code_size) {
 		usage("Filename must be specified");
 	}
 	if (!code_size) {
 		usage("MCU type must be specified");
-	}
+	} else if (print_code_size) {
+            fprintf(stdout, "Available program size (bytes): %d", code_size);
+            exit(0);
+        }
+
 	printf_verbose("Teensy Loader, Command Line, Version 2.2\n");
 
 	if (block_size == 512 || block_size == 1024) {
@@ -1169,6 +1175,11 @@ void parse_options(int argc, char **argv)
 				if(strcasecmp(name, "help") == 0) usage(NULL);
 				else if(strcasecmp(name, "mcu") == 0) read_mcu(val);
 				else if(strcasecmp(name, "list-mcus") == 0) list_mcus();
+				else if(strcasecmp(name, "code-size") == 0) {
+                                  //reset index because a value was expected
+                                  i--;
+                                  print_code_size = 1;
+                                }
 				else {
 					fprintf(stderr, "Unknown option \"%s\"\n\n", arg);
 					usage(NULL);
