@@ -42,7 +42,7 @@ Optional command line parameters:
 
 `-r` : Use hard reboot if device not online. Perform a hard reset using a second Teensy running this [rebooter](rebootor) code, with pin C7 connected to the reset pin on your main Teensy. While this requires using a second board, it allows a Makefile to fully automate reprogramming your Teensy. No manual button press is required!
 
-`-s` : Use sort reboot if device not online. Perform a sort reset request by searching for any Teensy running USB Serial code built by Teensyduino. A request to reboot is transmitted to the first device found.
+`-s` : Use soft reboot if device not online. Perform a soft reset request by searching for any Teensy running USB Serial code built by Teensyduino. A request to reboot is transmitted to the first device found.
 
 `-n` : No reboot after programming. After programming the hex file, do not reboot. HalfKay remains running. This option may be useful if you wish to program the code but do not intend for it to run until the Teensy is installed inside a system with its I/O pins connected.
 
