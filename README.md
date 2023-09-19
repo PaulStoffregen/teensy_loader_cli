@@ -13,6 +13,10 @@ On Ubuntu, you may need to install "libusb-dev" to compile.
 
   `sudo apt-get install libusb-dev`
 
+On Fedora, you may need to install " libusb-compat-0.1-devel"
+
+  ` sudo dnf install libusb-compat-0.1-devel`
+
 Other Linux systems may [require other package installation](https://forum.pjrc.com/threads/40965-Linux-64bit-Arduino-1-6-13-Issues-starting-Teensy-Loader-and-libusb-0-1-so-4-error?p=127873&viewfull=1#post127873) to compile.
 
 ## Usage and Command Line Options
