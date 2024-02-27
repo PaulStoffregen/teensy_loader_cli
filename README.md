@@ -72,6 +72,10 @@ FreeBSD requires a [device configuration file](freebsd-teensy.conf) for non-root
 
 OpenBSD's make is incompatible with most AVR makefiles. Use "`pkg_add -r gmake`", and then compile code with "`gmake all`" to obtain the .hex file.
 
+If you’re using the [Homebrew package manager](https://brew.sh/) on macOS, you
+can use `brew install --HEAD teensy_loader_cli` to install the latest version of
+`teensy_loader_cli` (tested on macOS Big Sur 11.3 on a MacBook Air M1).
+
 On Macintosh OS-X 10.8, Casey Rodarmor shared this tip:
 
 I recently had a little trouble getting the teensy cli loader working on Mac OSX 10.8. Apple moved the location of the SDKs around, so that they now reside inside of the xcode app itself. This is the line in the makefile that got it working for me:
