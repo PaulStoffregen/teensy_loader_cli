@@ -41,6 +41,7 @@ void usage(const char *err)
 		"\t-w : Wait for device to appear\n"
 		"\t-r : Use hard reboot if device not online\n"
 		"\t-s : Use soft reboot if device not online (Teensy 3.x & 4.x)\n"
+		"\t--serial-number=SERIAL_NUMBER : Serial number to use in conjunction with soft reboot (UNIX only).\n"
 		"\t-n : No reboot after programming\n"
 		"\t-b : Boot only, do not program\n"
 		"\t-v : Verbose output\n"
@@ -74,6 +75,7 @@ void boot(unsigned char *buf, int write_size);
 int wait_for_device_to_appear = 0;
 int hard_reboot_device = 0;
 int soft_reboot_device = 0;
+const char * soft_reboot_serial_number = NULL;
 int reboot_after_programming = 1;
 int verbose = 0;
 int boot_only = 0;
@@ -227,13 +229,14 @@ int main(int argc, char **argv)
 // http://libusb.sourceforge.net/doc/index.html
 #include <usb.h>
 
-usb_dev_handle * open_usb_device(int vid, int pid)
+usb_dev_handle * open_usb_device(int vid, int pid, const char *serial_number)
 {
 	struct usb_bus *bus;
 	struct usb_device *dev;
 	usb_dev_handle *h;
 	char buf[128];
-	int r;
+	const char * read_serial_number = NULL;
+	int r, i;
 
 	usb_init();
 	usb_find_busses();
@@ -252,6 +255,33 @@ usb_dev_handle * open_usb_device(int vid, int pid)
 			if (!h) {
 				printf_verbose("Found device but unable to open\n");
 				continue;
+			}
+
+			if (serial_number != NULL) {
+				if (dev->descriptor.iSerialNumber) {
+					// langid 0x0409 is English US
+					r = usb_get_string(h, dev->descriptor.iSerialNumber, 0x0409, buf, 128);
+					if (r < 0) {
+						usb_close(h);
+						continue;
+					}
+					// Seemsl like 16 bit wide chars are being sent
+					for (i=0; i < r/2; i++){
+						buf[i] = buf[i * 2];
+					}
+					// The first char seems to be of value 16
+					// meaning DATA LINK ESCAPE. Who knows what that means???
+					read_serial_number = &buf[1];
+				} else {
+					// No serial number
+					usb_close(h);
+					continue;
+				}
+				if(strncmp(serial_number, read_serial_number, strlen(serial_number))) {
+					// Serial number doesn't match
+					usb_close(h);
+					continue;
+				}
 			}
 			#ifdef LIBUSB_HAS_GET_DRIVER_NP
 			r = usb_get_driver_np(h, 0, buf, sizeof(buf));
@@ -287,7 +317,7 @@ static usb_dev_handle *libusb_teensy_handle = NULL;
 int teensy_open(void)
 {
 	teensy_close();
-	libusb_teensy_handle = open_usb_device(0x16C0, 0x0478);
+	libusb_teensy_handle = open_usb_device(0x16C0, 0x0478, NULL);
 	if (libusb_teensy_handle) return 1;
 	return 0;
 }
@@ -321,7 +351,7 @@ int hard_reboot(void)
 	usb_dev_handle *rebootor;
 	int r;
 
-	rebootor = open_usb_device(0x16C0, 0x0477);
+	rebootor = open_usb_device(0x16C0, 0x0477, NULL);
 	if (!rebootor) return 0;
 	r = usb_control_msg(rebootor, 0x21, 9, 0x0200, 0, "reboot", 6, 100);
 	usb_release_interface(rebootor, 0);
@@ -334,7 +364,7 @@ int soft_reboot(void)
 {
 	usb_dev_handle *serial_handle = NULL;
 
-	serial_handle = open_usb_device(0x16C0, 0x0483);
+	serial_handle = open_usb_device(0x16C0, 0x0483, soft_reboot_serial_number);
 	if (!serial_handle) {
 		char *error = usb_strerror();
 		printf("Error opening USB device: %s\n", error);
@@ -373,6 +403,8 @@ int soft_reboot(void)
 #include <ddk/hidsdi.h>
 #include <ddk/hidclass.h>
 
+// Serial number checking not implemented on Windows
+// https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/hidsdi/nf-hidsdi-hidd_getserialnumberstring
 HANDLE open_usb_device(int vid, int pid)
 {
 	GUID guid;
@@ -1151,7 +1183,6 @@ void parse_options(int argc, char **argv)
 		if(strncmp(arg, "-mmcu=", 6) == 0) {
 			read_mcu(strchr(arg, '=') + 1);
 		}
-
 		else if(arg[0] == '-') {
 			if(arg[1] == '-') {
 				char *name = &arg[2];
@@ -1169,6 +1200,9 @@ void parse_options(int argc, char **argv)
 				if(strcasecmp(name, "help") == 0) usage(NULL);
 				else if(strcasecmp(name, "mcu") == 0) read_mcu(val);
 				else if(strcasecmp(name, "list-mcus") == 0) list_mcus();
+				else if(strcasecmp(name, "serial-number") == 0) {
+					soft_reboot_serial_number = val;
+				}
 				else {
 					fprintf(stderr, "Unknown option \"%s\"\n\n", arg);
 					usage(NULL);
