@@ -37,7 +37,7 @@ void usage(const char *err)
 {
 	if(err != NULL) fprintf(stderr, "%s\n\n", err);
 	fprintf(stderr,
-		"Usage: teensy_loader_cli --mcu=<MCU> [-w] [-h] [-n] [-b] [-v] <file.hex>\n"
+		"Usage: teensy_loader_cli --mcu=<MCU> [-w] [-h] [-n] [-b] [-v] [--serial=<serial>] <file.hex>\n"
 		"\t-w : Wait for device to appear\n"
 		"\t-r : Use hard reboot if device not online\n"
 		"\t-s : Use soft reboot if device not online (Teensy 3.x & 4.x)\n"
@@ -79,6 +79,7 @@ int verbose = 0;
 int boot_only = 0;
 int code_size = 0, block_size = 0;
 const char *filename=NULL;
+long int serial = -1;
 
 
 /****************************************************************/
@@ -252,6 +253,17 @@ usb_dev_handle * open_usb_device(int vid, int pid)
 			if (!h) {
 				printf_verbose("Found device but unable to open\n");
 				continue;
+			}
+			if ( serial != -1 ) {
+				if (dev->descriptor.iSerialNumber) {
+					r = usb_get_string_simple(h, dev->descriptor.iSerialNumber, buf, sizeof(buf));
+					if (r > 0) {
+						long int serial_ = atoi(buf);
+					        printf_verbose("Serial Number: %s\n", buf);
+						if ( serial_ != serial ) continue;
+						else serial = -1;
+					}
+				}
 			}
 			#ifdef LIBUSB_HAS_GET_DRIVER_NP
 			r = usb_get_driver_np(h, 0, buf, sizeof(buf));
@@ -1120,6 +1132,18 @@ void read_mcu(char *name)
 }
 
 
+void read_serial(char *name)
+{
+	if(name == NULL) {
+		fprintf(stderr, "No serial specified.\n");
+		exit(1);
+	}
+
+	serial = atoi(name);
+	printf("requested serial: %ld\n", serial);
+}
+
+
 void parse_flag(char *arg)
 {
 	int i;
@@ -1169,6 +1193,7 @@ void parse_options(int argc, char **argv)
 				if(strcasecmp(name, "help") == 0) usage(NULL);
 				else if(strcasecmp(name, "mcu") == 0) read_mcu(val);
 				else if(strcasecmp(name, "list-mcus") == 0) list_mcus();
+				else if(strcasecmp(name, "serial") == 0) read_serial(val);
 				else {
 					fprintf(stderr, "Unknown option \"%s\"\n\n", arg);
 					usage(NULL);
