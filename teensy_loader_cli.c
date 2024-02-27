@@ -37,7 +37,8 @@ void usage(const char *err)
 {
 	if(err != NULL) fprintf(stderr, "%s\n\n", err);
 	fprintf(stderr,
-		"Usage: teensy_loader_cli --mcu=<MCU> [-w] [-h] [-n] [-b] [-v] <file.hex>\n"
+		"Usage: teensy_loader_cli --mcu=<MCU> [-h] [-w] [-n] [-b] [-v] <file.hex>\n"
+		"\t-h : Print this help message\n"
 		"\t-w : Wait for device to appear\n"
 		"\t-r : Use hard reboot if device not online\n"
 		"\t-s : Use soft reboot if device not online (Teensy 3.x & 4.x)\n"
@@ -1125,6 +1126,7 @@ void parse_flag(char *arg)
 	int i;
 	for(i=1; arg[i]; i++) {
 		switch(arg[i]) {
+			case 'h': usage(NULL); break;
 			case 'w': wait_for_device_to_appear = 1; break;
 			case 'r': hard_reboot_device = 1; break;
 			case 's': soft_reboot_device = 1; break;
