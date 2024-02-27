@@ -164,12 +164,12 @@ int main(int argc, char **argv)
 	printf_verbose("Programming");
 	fflush(stdout);
 	for (addr = 0; addr < code_size; addr += block_size) {
-		if (block_count == 0 && !ihex_bytes_within_range(addr, addr + block_size - 1)) {
+		if (block_count > 0) {
 			// don't waste time on blocks that are unused,
 			// but always do the first one to erase the chip
-			continue;
+			if (!ihex_bytes_within_range(addr, addr + block_size - 1)) continue;
+			if (memory_is_blank(addr, block_size)) continue;
 		}
-		if (block_count > 0 && memory_is_blank(addr, block_size)) continue;
 		printf_verbose(".");
 		if (block_size <= 256 && code_size < 0x10000) {
 			buf[0] = addr & 255;
