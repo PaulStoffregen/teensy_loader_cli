@@ -129,9 +129,8 @@ int main(int argc, char **argv)
 			wait_for_device_to_appear = 1;
 		}
 		if (soft_reboot_device) {
-			if (soft_reboot()) {
-				printf_verbose("Soft reboot performed\n");
-			}
+			if (!soft_reboot()) die("Unable to perform soft reboot.");
+			printf_verbose("Soft reboot performed\n");
 			soft_reboot_device = 0;
 			wait_for_device_to_appear = 1;
 		}
