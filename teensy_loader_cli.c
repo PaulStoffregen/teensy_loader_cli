@@ -92,7 +92,7 @@ int main(int argc, char **argv)
 	unsigned char buf[2048];
 	int num, addr, r, write_size;
 
-	int first_block=1, waited=0;
+	int block_count=0, waited=0;
 
 	// parse command line arguments
 	parse_options(argc, argv);
@@ -164,12 +164,12 @@ int main(int argc, char **argv)
 	printf_verbose("Programming");
 	fflush(stdout);
 	for (addr = 0; addr < code_size; addr += block_size) {
-		if (!first_block && !ihex_bytes_within_range(addr, addr + block_size - 1)) {
+		if (block_count == 0 && !ihex_bytes_within_range(addr, addr + block_size - 1)) {
 			// don't waste time on blocks that are unused,
 			// but always do the first one to erase the chip
 			continue;
 		}
-		if (!first_block && memory_is_blank(addr, block_size)) continue;
+		if (block_count > 0 && memory_is_blank(addr, block_size)) continue;
 		printf_verbose(".");
 		if (block_size <= 256 && code_size < 0x10000) {
 			buf[0] = addr & 255;
@@ -191,9 +191,9 @@ int main(int argc, char **argv)
 		} else {
 			die("Unknown code/block size\n");
 		}
-		r = teensy_write(buf, write_size, first_block ? 5.0 : 0.5);
+		r = teensy_write(buf, write_size, block_count <= 4 ? 45.0 : 0.5);
 		if (!r) die("error writing to Teensy\n");
-		first_block = 0;
+		block_count = block_count + 1;
 	}
 	printf_verbose("\n");
 
