@@ -27,7 +27,7 @@ ifeq ($(USE_LIBUSB), YES)
 CC ?= gcc
 CFLAGS ?= -O2 -Wall
 teensy_loader_cli: teensy_loader_cli.c
-	$(CC) $(CFLAGS) -s -DUSE_LIBUSB -DMACOSX -o teensy_loader_cli teensy_loader_cli.c -lusb -I /usr/local/include -L/usr/local/lib
+	$(CC) $(CFLAGS) -s -DUSE_LIBUSB -DMACOSX -o teensy_loader_cli teensy_loader_cli.c -lusb $(LDFLAGS)
 	 
 else
 CC ?= gcc
