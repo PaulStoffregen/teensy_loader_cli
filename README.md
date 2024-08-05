@@ -1,22 +1,25 @@
 # Teensy Loader - Command Line Version
-
 The Teensy Loader is available in a command line version for advanced users who want to automate programming, typically using a Makefile. For most uses, the graphical version in Automatic Mode is much easier. 
 
 http://www.pjrc.com/teensy/loader_cli.html
 
-## Compiling From Source
+## System-specific Prerequisites
+- **Debian / Ubuntu**
+  - libUSB Package
+    ```
+    apt install libusb-0.1.4
+    ```
+  - For non-root users, install the [udev rules file](https://www.pjrc.com/teensy/00-teensy.rules).
+- **Arch Linux (and Arch-likes)**
+  - libUSB Package
+    ```
+    pacman -S libusb libusb-compat
+    ```
+- **FreeBSD**  
+  - For non-root users, install the [device configuration file](extra/freebsd-teensy.conf).
 
-The command line version is provided as source code for most platforms. To compile, you must have gcc or mingw installed. Edit the Makefile to select your operating system, then just type "make". If you have a BSD compatible make, replace "Makefile" with "Makefile.bsd".
-Version 2.0 has been tested on Ubuntu 9.04, Mac OS-X 10.5, Windows XP, FreeBSD 8.0, OpenBSD (20-Jan-2010 snapshot), and NetBSD 5.0.1. All versions of NT-based Windows with USB support (2000 and later) are believed to work.
 
-On Ubuntu, you may need to install "libusb-dev" to compile.
-
-  `sudo apt-get install libusb-dev`
-
-Other Linux systems may [require other package installation](https://forum.pjrc.com/threads/40965-Linux-64bit-Arduino-1-6-13-Issues-starting-Teensy-Loader-and-libusb-0-1-so-4-error?p=127873&viewfull=1#post127873) to compile.
-
-## Usage and Command Line Options
-
+## Usage
 A typical usage from the command line may look like this:
 
 `teensy_loader_cli --mcu=mk20dx256 -w blink_slow_Teensy32.hex`
@@ -50,7 +53,7 @@ Required command line parameters:
 
 Caution: HEX files compiled with USB support must be compiled for the correct chip. If you load a file built for a different chip, often it will hang while trying to initialize the on-chip USB controller (each chip has a different PLL-based clock generator). On some PCs, this can "confuse" your USB port and a cold reboot may be required to restore USB functionality. When a Teensy has been programmed with such incorrect code, the reset button must be held down BEFORE the USB cable is connected, and then released only after the USB cable is fully connected.
 
-Optional command line parameters:
+### Optional command line parameters:
 
 `-w` : Wait for device to appear. When the pushbuttons has not been pressed and HalfKay may not be running yet, this option makes teensy_loader_cli wait. It is safe to use this when HalfKay is already running. The hex file is read before waiting to verify it exists, and again immediately after the device is detected.
 
@@ -62,46 +65,78 @@ Optional command line parameters:
 
 `-v` : Verbose output. Normally teensy_loader_cli prints only error messages if any operation fails. This enables verbose output, which can help with troubleshooting, or simply show you more status information.
 
-## System Specific Setup
+## Building from Source
 
-Linux requires UDEV rules for non-root users.
+### Prerequisites
+- **Windows**  
+  - A compatible compiler:  
+    - [Visual Studio](https://visualstudio.microsoft.com/vs/) for C & C++ Development
+    - LLVM and MinGW work, but require additional configuration.
+  - [CMake](https://cmake.org/) 3.30.0 or newer
+  - [Windows Software Development Kit](https://developer.microsoft.com/en-us/windows/downloads/windows-sdk/)
+  - [Windows Driver Development Kit](https://learn.microsoft.com/en-us/windows-hardware/drivers/download-the-wdk#download-icon-for-wdk-step-3-install-wdk) (must have the same version as the Windows SDK!)
+- **Debian / Ubuntu**  
+  - Essential Build Tools  
+    ```
+    apt install build-essential make
+    ```
+  - At least one of:  
+      - GCC 12 (or newer)  
+        ```
+        apt install gcc-12 g++-12
+        ```
+      - [LLVM](https://releases.llvm.org/) Clang 14 (or newer)  
+        ```
+        bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)"
+        ```
+  - At least one of:  
+      - ld or gold  
+        ````
+        apt install binutils
+        ```
+      - [LLVM](https://releases.llvm.org/) lld  
+        ```
+        bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)"
+        ```
+      - [mold](https://github.com/rui314/mold)  
+        ```
+        apt install mold
+        ```
+  - libUSB Development Packages  
+    ```
+    apt install libusb-dev
+    ```
+  - [CMake](https://cmake.org/) 3.30.0 or newer  
+    Please install the latest version from the link above.
+- **Arch Linux (and Arch-likes)**
+  - Build Tools  
+    ```
+    pacman -S base-devel gcc make
+    ```
+  - libUSB Development Packages  
+    ```
+    pacman -S libusb libusb-compat
+    ```
+  - [CMake](https://cmake.org/) 3.30.0 or newer  
+    ```
+    pacman -S cmake
+    ```
+- **FreeBSD & BSD-like**
+  - [CMake](https://cmake.org/) 3.30.0 or newer  
+    Please install the latest version from the link above.
 
-https://www.pjrc.com/teensy/00-teensy.rules
+### Configuring & Compiling
+1. Clone the repository, or download a snapshot of it.
+2. Run this command in the directory containing the CMakeLists.txt file:  
+    ```
+    cmake -S. -Bbuild -DCMAKE_INSTALL_PREFIX=build/install -DCMAKE_BUILD_TYPE=Release
+    ```
+3. Run this command in the directory containing the CMakeLists.txt file:  
+    ```
+    cmake --build build --target install --config Release
+    ```
+4. Done, you should now have a binary file at `build/install`.
 
-FreeBSD requires a [device configuration file](freebsd-teensy.conf) for non-root users.
-
-OpenBSD's make is incompatible with most AVR makefiles. Use "`pkg_add -r gmake`", and then compile code with "`gmake all`" to obtain the .hex file.
-
-On Macintosh OS-X 10.8, Casey Rodarmor shared this tip:
-
-I recently had a little trouble getting the teensy cli loader working on Mac OSX 10.8. Apple moved the location of the SDKs around, so that they now reside inside of the xcode app itself. This is the line in the makefile that got it working for me:
-SDK ?= /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.8.sdk
-
-## Makefile Integration
-
-You can use teensy_loader_cli from your Makefile, to autoamtically program your freshly compiled code. Here is an example:
-
-```
-# Create final output files (.hex, .eep) from ELF output file.
-%.hex: %.elf
-        @echo
-        @echo $(MSG_FLASH) $@
-        $(OBJCOPY) -O $(FORMAT) -R .eeprom -R .fuse -R .lock -R .signature $< $@
-        teensy_loader_cli --mcu=$(MCU) -w -v $@
-```
-
-Make requires the white space before any command to be a tab character (not 8 spaces), so please make sure you use tab.
-
-If you connect a second Teensy using the rebootor code, add the "-r" option and your code will always be programmed automaticallly without having to manually press the reset button!
-
-Scott Bronson contributed a [Makefile patch](http://www.pjrc.com/teensy/loader_cli.makefile.patch) to allow "make program" to work for the blinky example.
-
-## PlatformIO Integration
-
-[Platformio](http://platformio.org) includes support for loading via teensy_loader.
-
-## Errata
-
-Compiling on Mac OS-X 10.6 may require adding "-mmacosx-version-min=10.5" to the Makefile. Thanks to Morgan Sutherland for reporting this.
-
-`$(CC) $(CFLAGS) -DUSE_APPLE_IOKIT -isysroot $(SDK) -o teensy_loader_cli teensy_loader_cli.c -Wl,-syslibroot,$(SDK) -framework IOKit -framework CoreFoundation -mmacosx-version-min=10.5`
+## Special Mentions
+- Scott Bronson contributed a [Makefile patch](http://www.pjrc.com/teensy/loader_cli.makefile.patch) to allow "make program" to work for the blinky example.
+- [PlatformIO](http://platformio.org) includes support for loading via teensy_loader.
