@@ -131,8 +131,8 @@ int main(int argc, char **argv)
 		if (soft_reboot_device) {
 			if (soft_reboot()) {
 				printf_verbose("Soft reboot performed\n");
+				soft_reboot_device = 0;
 			}
-			soft_reboot_device = 0;
 			wait_for_device_to_appear = 1;
 		}
 		if (!wait_for_device_to_appear) die("Unable to open device (hint: try -w option)\n");
