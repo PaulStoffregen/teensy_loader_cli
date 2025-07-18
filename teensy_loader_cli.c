@@ -119,6 +119,14 @@ int main(int argc, char **argv)
 			filename, num, (double)num / (double)code_size * 100.0);
 	}
 
+	// if teensy_reboot was called before and this gets called immediately
+	// after, there's a chance that the teensy is in the middle of rebooting.
+	// if we attempt teensy_open() at that moment we'll end up with a
+	// "Resource temporarily unavailable" error which won't go away anymore.
+	// delaying for 1 s before attempting to connect resolves this problem
+	// completely as it gives the teensy enough time to reboot and linux to
+	// connect to it.
+	delay(1);
 	// open the USB device
 	while (1) {
 		if (teensy_open()) break;
