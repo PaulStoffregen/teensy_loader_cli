@@ -1,0 +1,143 @@
+name: Build and publish binaries
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  release:
+    types: [created]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-linux:
+    name: Linux (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-latest
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.release.tag_name || github.sha }}
+
+      - name: Install build dependencies
+        run: sudo apt-get update && sudo apt-get install --yes libusb-dev
+
+      - name: Build
+        run: make OS=LINUX
+
+      - name: Package
+        run: |
+          package=teensy_loader_cli-linux-${{ matrix.arch }}
+          mkdir -p "dist/$package"
+          install -m 755 teensy_loader_cli "dist/$package/teensy_loader_cli"
+          cp README.md gpl3.txt "dist/$package/"
+          tar -C dist -czf "$package.tar.gz" "$package"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: teensy_loader_cli-linux-${{ matrix.arch }}
+          path: teensy_loader_cli-linux-${{ matrix.arch }}.tar.gz
+          if-no-files-found: error
+
+  build-macos:
+    name: macOS (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: macos-15-intel
+          - arch: arm64
+            runner: macos-14
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.release.tag_name || github.sha }}
+
+      - name: Build
+        run: make OS=MACOSX
+
+      - name: Package
+        run: |
+          package=teensy_loader_cli-macos-${{ matrix.arch }}
+          mkdir -p "dist/$package"
+          install -m 755 teensy_loader_cli "dist/$package/teensy_loader_cli"
+          cp README.md gpl3.txt "dist/$package/"
+          tar -C dist -czf "$package.tar.gz" "$package"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: teensy_loader_cli-macos-${{ matrix.arch }}
+          path: teensy_loader_cli-macos-${{ matrix.arch }}.tar.gz
+          if-no-files-found: error
+
+  build-windows:
+    name: Windows (x86_64)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.release.tag_name || github.sha }}
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            make
+            mingw-w64-x86_64-gcc
+
+      - name: Build
+        shell: msys2 {0}
+        run: make OS=WINDOWS CC=x86_64-w64-mingw32-gcc
+
+      - name: Package
+        shell: pwsh
+        run: |
+          $package = 'teensy_loader_cli-windows-x86_64'
+          New-Item -ItemType Directory -Path $package | Out-Null
+          Copy-Item teensy_loader_cli.exe, README.md, gpl3.txt -Destination $package
+          Compress-Archive -Path $package -DestinationPath "$package.zip"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: teensy_loader_cli-windows-x86_64
+          path: teensy_loader_cli-windows-x86_64.zip
+          if-no-files-found: error
+
+  publish-release:
+    name: Publish release assets
+    if: github.event_name == 'release'
+    needs: [build-linux, build-macos, build-windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v8
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Create checksums
+        working-directory: release-assets
+        run: sha256sum * > SHA256SUMS.txt
+
+      - name: Upload release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" release-assets/* --clobber --repo "${{ github.repository }}"
