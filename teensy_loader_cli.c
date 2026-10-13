@@ -610,11 +610,32 @@ void init_hid_manager(void)
 		printf_verbose("no HID Manager - maybe this is a pre-Leopard (10.5) system?\n");
 		return;
 	}
-	dict = CFDictionaryCreateMutable(kCFAllocatorDefault, 0,
-		&kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
-	if (!dict) return;
-	IOHIDManagerSetDeviceMatching(hid_manager, dict);
-	CFRelease(dict);
+	/* Only the devices this program opens: the bootloader and the rebootor. */
+	/* Matching every HID device also opens keyboards, which macOS 10.15+ */
+	/* refuses without the Input Monitoring permission. */
+	{
+		const int pids[] = {0x0478, 0x0477};
+		CFMutableArrayRef matches = CFArrayCreateMutable(kCFAllocatorDefault, 0,
+			&kCFTypeArrayCallBacks);
+		int i, vid = 0x16C0;
+		if (!matches) return;
+		for (i = 0; i < 2; i++) {
+			CFNumberRef v, p;
+			dict = CFDictionaryCreateMutable(kCFAllocatorDefault, 0,
+				&kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
+			if (!dict) break;
+			v = CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &vid);
+			p = CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &pids[i]);
+			CFDictionarySetValue(dict, CFSTR(kIOHIDVendorIDKey), v);
+			CFDictionarySetValue(dict, CFSTR(kIOHIDProductIDKey), p);
+			CFRelease(v);
+			CFRelease(p);
+			CFArrayAppendValue(matches, dict);
+			CFRelease(dict);
+		}
+		IOHIDManagerSetDeviceMatchingMultiple(hid_manager, matches);
+		CFRelease(matches);
+	}
 	IOHIDManagerScheduleWithRunLoop(hid_manager, CFRunLoopGetCurrent(), kCFRunLoopDefaultMode);
 	IOHIDManagerRegisterDeviceMatchingCallback(hid_manager, attach_callback, NULL);
 	IOHIDManagerRegisterDeviceRemovalCallback(hid_manager, detach_callback, NULL);
